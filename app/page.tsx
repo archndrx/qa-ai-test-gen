@@ -188,9 +188,6 @@ export default function Home() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-center text-blue-500">
             QA Copilot{" "}
-            <span className="text-xs font-normal text-gray-400 border border-gray-500 rounded px-2 py-0.5 ml-2">
-              Beta
-            </span>
           </h1>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -203,7 +200,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-4 flex flex-col gap-4 sticky top-6 h-[85vh]">
+          <div className="lg:col-span-4 flex flex-col gap-4 sticky top-6 h-[calc(100vh-6rem)] overflow-y-auto pr-1">
             <div className={`p-4 rounded border ${theme.card} shrink-0`}>
               <label
                 className={`font-bold block mb-3 flex items-center gap-2 ${theme.label}`}
@@ -316,7 +313,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="lg:col-span-8 flex flex-col gap-4 h-[85vh]">
+          <div className="lg:col-span-8 flex flex-col gap-4 h-[calc(100vh-6rem)]">
             {resultData ? (
               <div
                 className={`flex flex-col h-full border rounded-lg overflow-hidden shadow-2xl ${
