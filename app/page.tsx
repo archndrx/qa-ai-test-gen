@@ -208,7 +208,7 @@ export default function Home() {
               <label
                 className={`font-bold block mb-3 flex items-center gap-2 ${theme.label}`}
               >
-                 AI Settings
+                AI Settings
               </label>
 
               <div className="mb-3">
@@ -385,9 +385,7 @@ export default function Home() {
                         <button
                           onClick={downloadFile}
                           className="hover:text-blue-500 text-gray-500 px-2 border-l border-gray-500"
-                        >
-                          
-                        </button>
+                        ></button>
                       </div>
                     </div>
                     <div className="flex-1 overflow-auto p-4 relative group">
@@ -467,19 +465,21 @@ export default function Home() {
                                 {lint.message}
                               </td>
                               <td className="p-2 text-right">
-                                <button
-                                  onClick={() => handleFixCode(lint)}
-                                  disabled={fixingId === lint.id}
-                                  className={`px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 ml-auto ${
-                                    fixingId === lint.id
-                                      ? "bg-gray-500 cursor-not-allowed"
-                                      : "bg-purple-600 hover:bg-purple-500 text-white"
-                                  }`}
-                                >
-                                  {fixingId === lint.id
-                                    ? "Fixing..."
-                                    : "🪄 Auto Fix"}
-                                </button>
+                                {lint.severity !== "Good" && (
+                                  <button
+                                    onClick={() => handleFixCode(lint)}
+                                    disabled={fixingId === lint.id}
+                                    className={`px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 ml-auto ${
+                                      fixingId === lint.id
+                                        ? "bg-gray-500 cursor-not-allowed"
+                                        : "bg-purple-600 hover:bg-purple-500 text-white"
+                                    }`}
+                                  >
+                                    {fixingId === lint.id
+                                      ? "Fixing..."
+                                      : "🪄 Auto Fix"}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}
