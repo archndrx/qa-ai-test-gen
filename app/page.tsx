@@ -24,6 +24,18 @@ export default function Home() {
 
   const [fixingId, setFixingId] = useState<any>(null);
 
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   // STATE THEME
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -135,14 +147,36 @@ export default function Home() {
 
   const downloadFile = () => {
     if (!activeFile) return;
-    const element = document.createElement("a");
-    const file = new Blob([activeFile.content], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    const fileNameOnly = activeFile.path.split("/").pop();
-    element.download = fileNameOnly;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    try {
+      const element = document.createElement("a");
+      const file = new Blob([activeFile.content], { type: "text/plain" });
+      element.href = URL.createObjectURL(file);
+      const fileNameOnly = activeFile.path.split("/").pop();
+      element.download = fileNameOnly;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      setDownloadSuccess(true);
+      showToast(`File ${fileNameOnly} berhasil diunduh! 📥`);
+      setTimeout(() => setDownloadSuccess(false), 2000);
+    } catch (err) {
+      showToast("Gagal mengunduh file", "error");
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!activeFile?.content) return;
+    try {
+      await navigator.clipboard.writeText(activeFile.content);
+      setCopySuccess(true);
+      showToast("Kode berhasil disalin ke clipboard! 📋");
+
+      // Reset ikon tombol setelah 2 detik
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      showToast("Gagal menyalin kode", "error");
+    }
   };
 
   // --- THEME UTILS ---
@@ -371,18 +405,50 @@ export default function Home() {
                         {activeFile?.path || "Select a file..."}
                       </span>
                       <div className="flex gap-2">
+                        {/* TOMBOL COPY */}
                         <button
-                          onClick={() =>
-                            navigator.clipboard.writeText(activeFile?.content)
-                          }
-                          className="hover:text-green-500 text-gray-500 px-2"
+                          onClick={handleCopyCode}
+                          title="Copy to Clipboard"
+                          className={`flex items-center gap-1 px-2 py-1 rounded transition-all duration-200 ${
+                            copySuccess
+                              ? "text-green-500 bg-green-500/10"
+                              : "hover:text-green-500 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
                         >
-                          📋
+                          {copySuccess ? (
+                            <>
+                              <span className="text-sm">✅</span>
+                              <span className="text-[10px] font-bold">
+                                Copied!
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm">📋</span>
+                            </>
+                          )}
                         </button>
+
+                        {/* TOMBOL DOWNLOAD */}
                         <button
                           onClick={downloadFile}
-                          className="hover:text-blue-500 text-gray-500 px-2 border-l border-gray-500"
-                        ></button>
+                          title="Download File"
+                          className={`flex items-center gap-1 px-2 py-1 rounded transition-all duration-200 border-l border-gray-500 ml-1 ${
+                            downloadSuccess
+                              ? "text-blue-500 bg-blue-500/10"
+                              : "hover:text-blue-500 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {downloadSuccess ? (
+                            <>
+                              <span className="text-sm">⬇️</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm">💾</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                     <div className="flex-1 overflow-auto p-4 relative group">
@@ -505,6 +571,31 @@ export default function Home() {
           </div>
         </div>
       </div>
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 px-4 py-3 rounded-lg shadow-2xl transform transition-all duration-500 flex items-center gap-3 animate-slide-up z-50 ${
+            toast.type === "success" 
+              ? "bg-green-600 text-white" 
+              : "bg-red-600 text-white"
+          }`}
+        >
+          <span className="text-xl">
+            {toast.type === "success" ? "✅" : "⚠️"}
+          </span>
+          <div>
+            <p className="font-bold text-sm">
+              {toast.type === "success" ? "Success" : "Error"}
+            </p>
+            <p className="text-xs opacity-90">{toast.msg}</p>
+          </div>
+          <button 
+            onClick={() => setToast(null)} 
+            className="ml-2 opacity-70 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
