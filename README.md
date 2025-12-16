@@ -7,6 +7,7 @@ First, add env for the base api key:
 add this to your .env.local
 ```bash
 GEMINI_API_KEY=your_key
+OPENAI_API_KEY=your_key
 ```
 
 Second, run the development server:
