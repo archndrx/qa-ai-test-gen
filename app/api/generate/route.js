@@ -1,118 +1,145 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
 const FRAMEWORK_RULES = {
-  cypress: "Output: Cypress (JS). Structure: /cypress/e2e (Specs), /cypress/pages (POM), /cypress/fixtures (Data).",
-  playwright: "Output: Playwright (TS). Structure: /tests (Specs), /pages (POM), /utils (Data).",
-  // robot: "Output: Robot Framework. Structure: /tests (.robot), /resources (Keywords), /variables."
+  cypress: `
+    FRAMEWORK: Cypress (JavaScript)
+    STRICT FILE STRUCTURE:
+    1. Spec Files: Must be in "cypress/e2e/..." with extension ".cy.js"
+    2. Page Objects: Must be in "cypress/support/pages/..." with extension ".js"
+    3. Fixtures: "cypress/fixtures/..."
+    4. SYNTAX: Use cy.get(), cy.visit(), etc.
+  `,
+  playwright: `
+    FRAMEWORK: Playwright (TypeScript)
+    STRICT FILE STRUCTURE:
+    1. Spec Files: Must be in "tests/e2e/..." with extension ".spec.ts"
+    2. Page Objects: Must be in "pages/..." with extension ".ts" (DO NOT put in cypress folder!)
+    3. Utils: "utils/..."
+    4. SYNTAX: Use await page.locator(), await page.goto(), etc.
+    5. FORBIDDEN: Do NOT use any folder named 'cypress'.
+  `,
 };
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, testCase, framework, currentCode, errorMessage, fileName } = body;
-    
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'API Key belum diset di .env.local' }, { status: 500 });
-    }
+    const { 
+      action, 
+      testCase, 
+      framework, 
+      provider,
+      currentCode, 
+      errorMessage, 
+      fileName,
+      userApiKey 
+    } = body;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const MODEL_NAME = "gemini-2.5-flash"; 
-
-    if (action === 'fix') {
-      console.log(`Fixing file: ${fileName}`);
-
-      if (!currentCode || !errorMessage) {
-        throw new Error("Data code atau error message kosong.");
-      }
-
-      if (errorMessage.length > 500) {
-        throw new Error("Error message terlalu panjang. Maksimal 500 karakter.");
-      }
-
-      if (currentCode.length > 8000) {
-        
-      }
-
-      const fixPrompt = `
-        Role: Senior QA Code Reviewer.
-        Task: Fix the following code based on the specific linting error provided.
-        
-        File Name: ${fileName}
-        Error to Fix: "${errorMessage}"
-        
-        Current Code:
-        \`\`\`
-        ${currentCode}
-        \`\`\`
-
-        Rules:
-        1. ONLY return the fixed code. Do not add explanations, conversation, or markdown backticks.
-        2. Keep the rest of the code intact, only fix the specific error.
-        3. Ensure the fix follows best practices.
-      `;
-
-      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-      
-      const result = await model.generateContent(fixPrompt);
-      const response = await result.response;
-      let fixedCode = response.text();
-      
-      fixedCode = fixedCode.replace(/```[a-z]*\n/g, "").replace(/```/g, "").trim();
-      
-      return NextResponse.json({ result: fixedCode });
-    }
-
-    // --- MODE 2 ---
-    console.log(`Generating structure for: ${framework}`);
-    
+    // --- SYSTEM PROMPTS (Reusable) ---
     const selectedRule = FRAMEWORK_RULES[framework] || FRAMEWORK_RULES.cypress;
-    const systemInstruction = `
-      Role: Senior QA Automation Architect & Code Reviewer (Indonesian Native Speaker).
-      Tugas: Analisa Risiko (RBT), Generate FULL POM, Code Review.
+    
+    const generateSystemPrompt = `
+      Role: Senior QA Automation Architect.
+      Task: Generate a robust Page Object Model (POM) test structure.
       
-      ATURAN BAHASA:
-      1. Reasoning & Linter Message: WAJIB Bahasa Indonesia.
-      2. Priority: Bahasa Inggris (High/Medium/Low).
+      CRITICAL INSTRUCTIONS:
+      1. Follow the "STRICT FILE STRUCTURE" below exactly.
+      2. If Playwright is selected, NEVER create a 'cypress' folder.
       
-      Format Output JSON:
+      Response Format (JSON Only, Minified):
       {
-        "risk_analysis": {
-          "score": (1-10),
-          "priority": "High" | "Medium" | "Low",
-          "test_type": "Sanity" | "Regression" | "Smoke",
-          "reasoning": "..."
-        },
-        "lint_report": [
-           {
-             "severity": "Error" | "Warning" | "Good",
-             "message": "...",
-             "file": "nama_file.js"
-           }
-        ],
-        "generated_files": [
-          {
-            "path": "cypress/pages/LoginPage.js",
-            "content": "..."
-          }
-        ]
+        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia" },
+        "lint_report": [],
+        "generated_files": [ { "path": "path/to/file.ext", "content": "code..." } ]
       }
-      Context: ${selectedRule}
+
+      CONTEXT & RULES:
+      ${selectedRule}
     `;
 
-    const model = genAI.getGenerativeModel({ 
-      model: MODEL_NAME,
-      systemInstruction: systemInstruction,
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const fixSystemPrompt = `
+      Role: Senior QA Code Reviewer.
+      Task: Fix the provided code based on the error.
+      Rules: Return ONLY the fixed code string. No markdown formatting.
+    `;
 
-    const result = await model.generateContent(testCase || "No test case provided");
-    const response = await result.response;
-    
-    return NextResponse.json({ result: response.text() });
+    // PROVIDER 1: OPENAI (GPT-4o / GPT-3.5)
+    if (provider === 'openai') {
+        // Key: User Input -> Server Env
+        const apiKey = userApiKey || process.env.OPENAI_API_KEY;
+        
+        if (!apiKey) {
+            return NextResponse.json({ error: 'OpenAI API Key not found.' }, { status: 401 });
+        }
+
+        const openai = new OpenAI({ apiKey });
+        
+        let messages = [];
+        if (action === 'fix') {
+            messages = [
+                { role: "system", content: fixSystemPrompt },
+                { role: "user", content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}` }
+            ];
+        } else {
+            messages = [
+                { role: "system", content: generateSystemPrompt },
+                { role: "user", content: `Test Case: ${testCase}` }
+            ];
+        }
+
+        const completion = await openai.chat.completions.create({
+            messages: messages,
+            model: "gpt-4o", 
+            response_format: action === 'fix' ? undefined : { type: "json_object" }
+        });
+
+        let result = completion.choices[0].message.content;
+        
+        if (action === 'fix') {
+             result = result.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        }
+
+        return NextResponse.json({ result });
+    }
+
+    // PROVIDER 2: GOOGLE GEMINI (DEFAULT)
+    else {
+        const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            return NextResponse.json({ error: 'Gemini API Key not found.' }, { status: 401 });
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: action === 'fix' ? "text/plain" : "application/json" },
+            systemInstruction: action === 'fix' ? fixSystemPrompt : generateSystemPrompt
+        });
+
+        let prompt = "";
+        if (action === 'fix') {
+            prompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}`;
+        } else {
+            prompt = testCase || "No test case";
+        }
+
+        const result = await model.generateContent(prompt);
+        let resultText = result.response.text();
+
+        if (action === 'fix') {
+            resultText = resultText.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        }
+
+        return NextResponse.json({ result: resultText });
+    }
 
   } catch (error) {
     console.error("ERROR BACKEND:", error);
+    if (error.status === 429 || error.message?.includes('429')) {
+       return NextResponse.json({ error: "API Quota Exceeded (Rate Limit)." }, { status: 429 });
+    }
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
