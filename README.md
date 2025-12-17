@@ -24,4 +24,7 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Note :
+If you don't want to put your API KEY in the local env, you can directly input it in the Custom API Key column on the frontend according to the provider you choose.
+<img width="1904" height="1031" alt="image" src="https://github.com/user-attachments/assets/e5fdc29a-ca61-4244-9c68-703b008afd89" />
+
