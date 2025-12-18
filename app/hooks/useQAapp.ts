@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { ResultData, GeneratedFile, LintItem, UserPreferences } from "../types";
+import { ResultData, GeneratedFile, LintItem, UserPreferences, HistoryItem } from "../types";
 
 export const useQAapp = () => {
   // --- STATE ---
@@ -42,8 +42,19 @@ export const useQAapp = () => {
     lintId: number;
   } | null>(null);
 
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+
   // --- EFFECTS ---
   useEffect(() => {
+    const savedHistory = localStorage.getItem('qa_copilot_history');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse history");
+      }
+    }
     const saved = localStorage.getItem('qa_copilot_prefs');
     if (saved) {
       try {
@@ -58,6 +69,38 @@ export const useQAapp = () => {
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const saveToHistory = (inputCase: string, frameworkName: string, data: ResultData) => {
+    const newItem: HistoryItem = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      testCase: inputCase,
+      framework: frameworkName,
+      resultData: data
+    };
+
+    const newHistory = [newItem, ...history].slice(0, 10);
+    setHistory(newHistory);
+    localStorage.setItem('qa_copilot_history', JSON.stringify(newHistory));
+  };
+
+  const loadHistoryItem = (item: HistoryItem) => {
+    setInput(item.testCase);
+    setFramework(item.framework);
+    setResultData(item.resultData);
+    if (item.resultData.generated_files.length > 0) {
+      setActiveFile(item.resultData.generated_files[0]);
+    }
+    setShowHistorySidebar(false);
+    showToast("Project loaded from history! 📂");
+  };
+
+  const deleteHistoryItem = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); 
+    const newHistory = history.filter(item => item.id !== id);
+    setHistory(newHistory);
+    localStorage.setItem('qa_copilot_history', JSON.stringify(newHistory));
   };
 
   const handleGenerate = async () => {
@@ -90,6 +133,7 @@ export const useQAapp = () => {
       }
       setResultData(parsed);
       if (parsed.generated_files?.length > 0) setActiveFile(parsed.generated_files[0]);
+      saveToHistory(input, framework, parsed);
     } catch (err: any) {
       alert(err.message || "Gagal connect server");
     } finally {
@@ -177,25 +221,37 @@ export const useQAapp = () => {
   }) || [];
 
   return {
+    // 1. INPUT STATES
     input, setInput,
     framework, setFramework,
     provider, setProvider,
     userApiKey, setUserApiKey,
+    
+    // 2. APP DATA STATES
     resultData, loading,
     activeFile, setActiveFile,
     activeTab, setActiveTab,
     fixingId,
+    
+    // 3. UI STATES
     isDarkMode, setIsDarkMode,
     diffModal, setDiffModal,
     toast, setToast,
-    validLintItems,
     showSettings, setShowSettings,
-    preferences, setPreferences,
-    
     showSmartContextModal, setShowSmartContextModal,
+    
+    // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext, setHtmlContext,
     imageData, setImageData,
 
+    // 5. HISTORY STATES (BARU)
+    history, 
+    showHistorySidebar, setShowHistorySidebar,
+    loadHistoryItem, deleteHistoryItem,
+    
+    // 6. LOGIC & ACTIONS
+    validLintItems,
+    preferences, setPreferences,
     handleGenerate,
     handleFixCode,
     applyFix,
@@ -203,4 +259,6 @@ export const useQAapp = () => {
     updateActiveFileContent,
     showToast
   };
+
+  
 };

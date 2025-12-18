@@ -4,9 +4,10 @@ interface HeaderProps {
   isDarkMode: boolean;
   toggleTheme: () => void;
   openSettings: () => void;
+  openHistory: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, openSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, openSettings, openHistory }) => {
   // Common button classes
   const btnClass = `p-2.5 rounded-lg border transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md ${
     isDarkMode
@@ -23,7 +24,16 @@ export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, openSet
       </div>
 
       <div className="flex gap-3">
-        {/* SETTINGS BUTTON (Updated to SVG) */}
+        {/* HISTORY BUTTON */}
+        <button
+          onClick={openHistory}
+          className={btnClass}
+          title="Project History"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </button>
+
+        {/* SETTINGS BUTTON */}
         <button
           onClick={openSettings}
           className={btnClass}
@@ -46,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, openSet
           </svg>
         </button>
 
-        {/* THEME TOGGLE BUTTON (Updated to match style) */}
+        {/* THEME TOGGLE BUTTON */}
         <button
           onClick={toggleTheme}
           className={btnClass}

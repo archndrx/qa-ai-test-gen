@@ -11,6 +11,7 @@ import { DiffModal } from "./components/feedback/DiffModal";
 import { Toast } from "./components/feedback/Toast";
 import { SettingsModal } from "./components/modals/SettingsModal";
 import { SmartContextModal } from "./components/modals/SmartContextModal";
+import { HistorySidebar } from "./components/workspace/HistorySidebar";
 
 export default function Home() {
   const {
@@ -33,11 +34,16 @@ export default function Home() {
     showSettings, setShowSettings,
     showSmartContextModal, setShowSmartContextModal,
     
-    // 4. CONTEXT STATES
+    // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext, setHtmlContext,
     imageData, setImageData,
+
+    // 5. HISTORY STATES
+    history, 
+    showHistorySidebar, setShowHistorySidebar,
+    loadHistoryItem, deleteHistoryItem,
     
-    // 5. LOGIC & ACTIONS
+    // 6. LOGIC & ACTIONS
     validLintItems,
     preferences, setPreferences,
     handleGenerate,
@@ -59,6 +65,7 @@ export default function Home() {
           isDarkMode={isDarkMode} 
           toggleTheme={() => setIsDarkMode(!isDarkMode)} 
           openSettings={() => setShowSettings(true)}
+          openHistory={() => setShowHistorySidebar(true)}
         />
 
         {/* MAIN GRID LAYOUT */}
@@ -120,6 +127,16 @@ export default function Home() {
       </div>
 
       {/* --- MODALS SECTION --- */}
+
+      <HistorySidebar
+        isOpen={showHistorySidebar}
+        onClose={() => setShowHistorySidebar(false)}
+        history={history}
+        onLoad={loadHistoryItem}
+        onDelete={deleteHistoryItem}
+        isDarkMode={isDarkMode}
+      />
+
       {/* 1. Settings Modal */}
       <SettingsModal 
         isOpen={showSettings}
