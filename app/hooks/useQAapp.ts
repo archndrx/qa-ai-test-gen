@@ -25,6 +25,7 @@ export const useQAapp = () => {
   // Context States
   const [htmlContext, setHtmlContext] = useState("");
   const [imageData, setImageData] = useState<string | null>(null);
+  const [isCrawling, setIsCrawling] = useState(false);
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     selectorType: "data-testid",
@@ -220,6 +221,39 @@ export const useQAapp = () => {
     return targetFile && lint.file.length > 2 && lint.file !== "N/A";
   }) || [];
 
+  const handleCrawlUrl = async (url: string) => {
+    if (!url) return;
+    
+    if (!url.startsWith("http")) {
+        showToast("URL must start with http:// or https://", "error");
+        return;
+    }
+
+    setIsCrawling(true);
+    try {
+      const res = await fetch("/api/crawl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to crawl");
+      }
+
+      setHtmlContext(data.html);
+      showToast("URL crawled successfully! HTML extracted. 🕷️");
+      
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || "Gagal mengambil URL. Pastikan website publik.", "error");
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+
   return {
     // 1. INPUT STATES
     input, setInput,
@@ -243,6 +277,7 @@ export const useQAapp = () => {
     // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext, setHtmlContext,
     imageData, setImageData,
+    isCrawling, handleCrawlUrl,
 
     // 5. HISTORY STATES (BARU)
     history, 

@@ -37,6 +37,7 @@ export default function Home() {
     // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext, setHtmlContext,
     imageData, setImageData,
+    isCrawling, handleCrawlUrl,
 
     // 5. HISTORY STATES
     history, 
@@ -155,6 +156,8 @@ export default function Home() {
         imageData={imageData}
         setImageData={setImageData}
         isDarkMode={isDarkMode}
+        isCrawling={isCrawling}
+        onCrawl={handleCrawlUrl}
       />
 
       {/* 3. Diff Modal (Auto Fix Review) */}
