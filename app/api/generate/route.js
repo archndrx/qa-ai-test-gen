@@ -49,7 +49,7 @@ export async function POST(request) {
       
       Response Format (JSON Only, Minified):
       {
-        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia" },
+        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia (if test case input in Indonesian) / English (if test case input in English)" },
         "lint_report": [],
         "generated_files": [ { "path": "path/to/file.ext", "content": "code..." } ]
       }
