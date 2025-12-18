@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { ResultData, GeneratedFile, LintItem } from "../types";
+import { ResultData, GeneratedFile, LintItem, UserPreferences } from "../types";
 
 export const useQAapp = () => {
   // --- STATE ---
@@ -36,6 +36,25 @@ export const useQAapp = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const [showSettings, setShowSettings] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    selectorType: "data-testid",
+    quoteStyle: "single",
+    assertionStyle: "should"
+  });
+
+  // EFFECT: Load preferences on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('qa_copilot_prefs');
+    if (saved) {
+      try {
+        setPreferences(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse preferences");
+      }
+    }
+  }, []);
+
   const handleGenerate = async () => {
     setLoading(true);
     setResultData(null);
@@ -46,7 +65,7 @@ export const useQAapp = () => {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testCase: input, framework, provider, userApiKey }),
+        body: JSON.stringify({ testCase: input, framework, provider, userApiKey, preferences }),
       });
 
       const data = await res.json();
@@ -83,6 +102,7 @@ export const useQAapp = () => {
           fileName: targetFile.path,
           provider,
           userApiKey,
+          preferences
         }),
       });
       const data = await res.json();
@@ -160,6 +180,8 @@ export const useQAapp = () => {
     diffModal, setDiffModal,
     toast, setToast,
     validLintItems,
+    showSettings, setShowSettings,
+    preferences, setPreferences,
     
     // Actions
     handleGenerate,

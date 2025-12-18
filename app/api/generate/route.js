@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 
@@ -25,27 +25,86 @@ const FRAMEWORK_RULES = {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { 
-      action, 
-      testCase, 
-      framework, 
+    const {
+      action,
+      testCase,
+      framework,
       provider,
-      currentCode, 
-      errorMessage, 
+      model,
+      currentCode,
+      errorMessage,
       fileName,
-      userApiKey 
+      userApiKey,
+      preferences,
     } = body;
 
-    // --- SYSTEM PROMPTS (Reusable) ---
+    let styleGuideInstruction = "";
+
+    if (preferences) {
+      styleGuideInstruction = `
+        <coding_style_rules>
+          IMPORTANT: You are configured to use a SPECIFIC CODING STYLE.
+          Do NOT revert to default Cypress patterns.
+          
+          1. SELECTOR STRATEGY: 
+             - PREFERRED: "${preferences.selectorType}"
+             ${
+               preferences.selectorType === "data-testid"
+                 ? "- RULE: Use cy.get(\"[data-testid='value']\")"
+                 : ""
+             }
+             ${
+               preferences.selectorType === "id"
+                 ? "- RULE: Prefer IDs (#id) over classes."
+                 : ""
+             }
+             
+          2. QUOTE STYLE: 
+             - FORCE: "${
+               preferences.quoteStyle === "single"
+                 ? "Single Quotes ('')"
+                 : 'Double Quotes ("")'
+             }"
+             
+          3. ASSERTION STYLE (CRITICAL):
+             - MODE: "${preferences.assertionStyle}"
+             
+             ${
+               preferences.assertionStyle === "should"
+                 ? `
+               [MODE: CHAINED]
+               - USE: cy.get(...).should('be.visible')
+               - FORBIDDEN: expect(...)
+               `
+                 : `
+               [MODE: EXPLICIT EXPECT]
+               - RULE: Cypress is async. You MUST wrap assertions in .then().
+               - WRONG: expect(cy.get(..)).to.exist
+               - CORRECT PATTERN:
+                 cy.get(selector).then(($el) => {
+                    expect($el).to.be.visible;
+                    expect($el).to.have.text("Value");
+                 });
+               - FORBIDDEN: .should()
+               `
+             }
+        </coding_style_rules>
+        `;
+    }
+
     const selectedRule = FRAMEWORK_RULES[framework] || FRAMEWORK_RULES.cypress;
-    
+
+    // --- 3. SYSTEM PROMPT  ---
     const generateSystemPrompt = `
       Role: Senior QA Automation Architect.
       Task: Generate a robust Page Object Model (POM) test structure.
       
+      ${styleGuideInstruction}
+
       CRITICAL INSTRUCTIONS:
       1. Follow the "STRICT FILE STRUCTURE" below exactly.
       2. If Playwright is selected, NEVER create a 'cypress' folder.
+      3. Adhere strictly to the <coding_style_rules> defined above.
       
       Response Format (JSON Only, Minified):
       {
@@ -61,85 +120,112 @@ export async function POST(request) {
     const fixSystemPrompt = `
       Role: Senior QA Code Reviewer.
       Task: Fix the provided code based on the error.
-      Rules: Return ONLY the fixed code string. No markdown formatting.
+      
+      ${styleGuideInstruction}
+
+      Rules: 
+      1. Return ONLY the fixed code string. No markdown formatting.
+      2. Ensure the fixed code follows the <coding_style_rules>.
     `;
 
     // PROVIDER 1: OPENAI (GPT-4o / GPT-3.5)
-    if (provider === 'openai') {
-        // Key: User Input -> Server Env
-        const apiKey = userApiKey || process.env.OPENAI_API_KEY;
-        
-        if (!apiKey) {
-            return NextResponse.json({ error: 'OpenAI API Key not found.' }, { status: 401 });
-        }
+    if (provider === "openai") {
+      const apiKey = userApiKey || process.env.OPENAI_API_KEY;
+      if (!apiKey)
+        return NextResponse.json(
+          { error: "OpenAI API Key not found." },
+          { status: 401 }
+        );
 
-        const openai = new OpenAI({ apiKey });
-        
-        let messages = [];
-        if (action === 'fix') {
-            messages = [
-                { role: "system", content: fixSystemPrompt },
-                { role: "user", content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}` }
-            ];
-        } else {
-            messages = [
-                { role: "system", content: generateSystemPrompt },
-                { role: "user", content: `Test Case: ${testCase}` }
-            ];
-        }
+      const openai = new OpenAI({ apiKey });
 
-        const completion = await openai.chat.completions.create({
-            messages: messages,
-            model: "gpt-4o", 
-            response_format: action === 'fix' ? undefined : { type: "json_object" }
-        });
+      let messages = [];
+      if (action === "fix") {
+        messages = [
+          { role: "system", content: fixSystemPrompt },
+          {
+            role: "user",
+            content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}`,
+          },
+        ];
+      } else {
+        messages = [
+          { role: "system", content: generateSystemPrompt },
+          {
+            role: "user",
+            content: `Test Case: ${testCase}\n\nREMINDER: Follow these style rules:\n${styleGuideInstruction}`,
+          },
+        ];
+      }
 
-        let result = completion.choices[0].message.content;
-        
-        if (action === 'fix') {
-             result = result.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
-        }
+      const completion = await openai.chat.completions.create({
+        messages: messages,
+        model: model || "gpt-4o",
+        response_format: action === "fix" ? undefined : { type: "json_object" },
+      });
 
-        return NextResponse.json({ result });
+      let result = completion.choices[0].message.content;
+      if (action === "fix")
+        result = result
+          .replace(/^```[a-z]*\n/i, "")
+          .replace(/```$/g, "")
+          .trim();
+
+      return NextResponse.json({ result });
     }
 
     // PROVIDER 2: GOOGLE GEMINI (DEFAULT)
     else {
-        const apiKey = userApiKey || process.env.GEMINI_API_KEY;
-        
-        if (!apiKey) {
-            return NextResponse.json({ error: 'Gemini API Key not found.' }, { status: 401 });
-        }
+      const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+      if (!apiKey)
+        return NextResponse.json(
+          { error: "Gemini API Key not found." },
+          { status: 401 }
+        );
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash",
-            generationConfig: { responseMimeType: action === 'fix' ? "text/plain" : "application/json" },
-            systemInstruction: action === 'fix' ? fixSystemPrompt : generateSystemPrompt
-        });
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const selectedModelName = model || "gemini-2.5-flash";
 
-        let prompt = "";
-        if (action === 'fix') {
-            prompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}`;
-        } else {
-            prompt = testCase || "No test case";
-        }
+      const geminiModel = genAI.getGenerativeModel({
+        model: selectedModelName,
+        generationConfig: {
+          responseMimeType:
+            action === "fix" ? "text/plain" : "application/json",
+        },
+        systemInstruction:
+          action === "fix" ? fixSystemPrompt : generateSystemPrompt,
+      });
 
-        const result = await model.generateContent(prompt);
-        let resultText = result.response.text();
+      let prompt = "";
+      if (action === "fix") {
+        prompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}\n\nIMPORTANT: Maintain the requested coding style!`;
+      } else {
+        prompt = `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}`;
+      }
 
-        if (action === 'fix') {
-            resultText = resultText.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
-        }
+      const result = await geminiModel.generateContent(prompt);
+      let resultText = result.response.text();
 
-        return NextResponse.json({ result: resultText });
+      if (action === "fix") {
+        resultText = resultText
+          .replace(/^```[a-z]*\n/i, "")
+          .replace(/```$/g, "")
+          .trim();
+      }
+
+      return NextResponse.json({ result: resultText });
     }
-
   } catch (error) {
     console.error("ERROR BACKEND:", error);
-    if (error.status === 429 || error.message?.includes('429')) {
-       return NextResponse.json({ error: "API Quota Exceeded (Rate Limit)." }, { status: 429 });
+    if (error.status === 429 || error.message?.includes("429")) {
+      return NextResponse.json(
+        { error: "API Quota Exceeded (Rate Limit)." },
+        { status: 429 }
+      );
     }
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

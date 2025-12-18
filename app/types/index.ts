@@ -22,4 +22,10 @@ export interface ResultData {
   lint_report: LintItem[];
 }
 
+export interface UserPreferences {
+  selectorType: "data-testid" | "id" | "class" | "text";
+  quoteStyle: "single" | "double";
+  assertionStyle: "should" | "expect";
+}
+
 export type ThemeMode = "dark" | "light";

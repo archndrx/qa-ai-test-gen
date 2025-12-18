@@ -9,6 +9,7 @@ import { LoadingState } from "./components/feedback/LoadingState";
 import { EmptyState } from "./components/feedback/EmptyState";
 import { DiffModal } from "./components/feedback/DiffModal";
 import { Toast } from "./components/feedback/Toast";
+import { SettingsModal } from "./components/modals/SettingsModal";
 
 export default function Home() {
   const {
@@ -29,7 +30,9 @@ export default function Home() {
     applyFix,
     handleDownloadZip,
     updateActiveFileContent,
-    showToast
+    showToast,
+    showSettings, setShowSettings,
+    preferences, setPreferences
   } = useQAapp();
 
   const theme = getTheme(isDarkMode);
@@ -39,7 +42,11 @@ export default function Home() {
       <div className="max-w-[1600px] mx-auto">
         
         {/* TOP HEADER */}
-        <Header isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />
+        <Header 
+            isDarkMode={isDarkMode} 
+            toggleTheme={() => setIsDarkMode(!isDarkMode)} 
+            openSettings={() => setShowSettings(true)} 
+        />
 
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -83,6 +90,14 @@ export default function Home() {
       </div>
 
       {/* OVERLAYS */}
+      <SettingsModal 
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        preferences={preferences}
+        setPreferences={setPreferences}
+        isDarkMode={isDarkMode}
+      />
+      
       {diffModal && diffModal.show && (
         <DiffModal
           isOpen={diffModal.show}
