@@ -17,8 +17,6 @@ export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, openSet
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="flex items-center gap-2">
-        {/* Logo Icon (Optional Decor) */}
-        <span className="text-2xl">🤖</span>
         <h1 className="text-2xl font-bold tracking-tight text-blue-500">
           QA Copilot
         </h1>
