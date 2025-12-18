@@ -126,7 +126,7 @@ export const useQAapp = () => {
       saveAs(content, "qa-copilot-project.zip");
       showToast("Project downloaded as ZIP! 📦");
     } catch (error) {
-      showToast("Gagal membuat file ZIP", "error");
+      showToast("Error creating ZIP file ", "error");
     }
   };
 
