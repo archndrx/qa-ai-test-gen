@@ -10,6 +10,7 @@ import { EmptyState } from "./components/feedback/EmptyState";
 import { DiffModal } from "./components/feedback/DiffModal";
 import { Toast } from "./components/feedback/Toast";
 import { SettingsModal } from "./components/modals/SettingsModal";
+import { SmartContextModal } from "./components/modals/SmartContextModal";
 
 export default function Home() {
   const {
@@ -32,7 +33,9 @@ export default function Home() {
     updateActiveFileContent,
     showToast,
     showSettings, setShowSettings,
-    preferences, setPreferences
+    preferences, setPreferences,
+    htmlContext, setHtmlContext,
+    showSmartContextModal, setShowSmartContextModal,
   } = useQAapp();
 
   const theme = getTheme(isDarkMode);
@@ -61,6 +64,9 @@ export default function Home() {
             handleGenerate={handleGenerate}
             loading={loading}
             resultData={resultData}
+            htmlContext={htmlContext}
+            setHtmlContext={setHtmlContext}
+            openSmartContext={() => setShowSmartContextModal(true)}
           />
 
           {/* RIGHT: WORKSPACE / LOADING / EMPTY */}
@@ -97,7 +103,15 @@ export default function Home() {
         setPreferences={setPreferences}
         isDarkMode={isDarkMode}
       />
-      
+
+      <SmartContextModal
+        isOpen={showSmartContextModal}
+        onClose={() => setShowSmartContextModal(false)}
+        htmlContext={htmlContext}
+        setHtmlContext={setHtmlContext}
+        isDarkMode={isDarkMode}
+      />
+
       {diffModal && diffModal.show && (
         <DiffModal
           isOpen={diffModal.show}

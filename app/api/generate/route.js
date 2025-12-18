@@ -36,10 +36,25 @@ export async function POST(request) {
       fileName,
       userApiKey,
       preferences,
+      htmlContext,
     } = body;
 
-    let styleGuideInstruction = "";
+    let htmlInstruction = "";
+    if (htmlContext && htmlContext.trim().length > 0) {
+      htmlInstruction = `
+        <smart_context>
+          The user has provided the ACTUAL HTML STRUCTURE of the page.
+          You MUST use the selectors (IDs, Classes, Names) found in this HTML.
+          Do NOT guess selectors if they are present here.
+          
+          [HTML SNIPPET START]
+          ${htmlContext}
+          [HTML SNIPPET END]
+        </smart_context>
+        `;
+    }
 
+    let styleGuideInstruction = "";
     if (preferences) {
       styleGuideInstruction = `
         <coding_style_rules>
@@ -100,6 +115,7 @@ export async function POST(request) {
       Task: Generate a robust Page Object Model (POM) test structure.
       
       ${styleGuideInstruction}
+      ${htmlInstruction}
 
       CRITICAL INSTRUCTIONS:
       1. Follow the "STRICT FILE STRUCTURE" below exactly.

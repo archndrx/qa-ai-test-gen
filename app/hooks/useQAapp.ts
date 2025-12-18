@@ -17,6 +17,9 @@ export const useQAapp = () => {
   
   const [fixingId, setFixingId] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const [htmlContext, setHtmlContext] = useState("");
+  const [showSmartContextModal, setShowSmartContextModal] = useState(false);
   
   // Toast State
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -65,7 +68,7 @@ export const useQAapp = () => {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testCase: input, framework, provider, userApiKey, preferences }),
+        body: JSON.stringify({ testCase: input, framework, provider, userApiKey, preferences, htmlContext }),
       });
 
       const data = await res.json();
@@ -182,7 +185,9 @@ export const useQAapp = () => {
     validLintItems,
     showSettings, setShowSettings,
     preferences, setPreferences,
-    
+    htmlContext, setHtmlContext,
+    showSmartContextModal, setShowSmartContextModal,
+
     // Actions
     handleGenerate,
     handleFixCode,

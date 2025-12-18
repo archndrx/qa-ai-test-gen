@@ -21,7 +21,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleChange = (key: keyof UserPreferences, value: string) => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
-    // Simpan ke localStorage agar persisten
     localStorage.setItem('qa_copilot_prefs', JSON.stringify(newPrefs));
   };
 

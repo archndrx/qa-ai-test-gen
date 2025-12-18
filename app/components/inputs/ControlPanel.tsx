@@ -15,11 +15,15 @@ interface ControlPanelProps {
   handleGenerate: () => void;
   loading: boolean;
   resultData: ResultData | null;
+  htmlContext: string;
+  setHtmlContext: (v: string) => void;
+  openSmartContext: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   isDarkMode, provider, setProvider, userApiKey, setUserApiKey,
-  framework, setFramework, input, setInput, handleGenerate, loading, resultData
+  framework, setFramework, input, setInput, handleGenerate, loading, resultData,
+  htmlContext, openSmartContext
 }) => {
   const theme = getTheme(isDarkMode);
 
@@ -53,6 +57,39 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {/* INPUT */}
       <div className="flex flex-col flex-1 min-h-[200px]">
+        <div className="flex justify-between items-end mb-2">
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.subtext}`}>
+              Test Scenario
+            </span>
+            
+            <button
+                onClick={openSmartContext}
+                className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-md border transition-all duration-200 font-medium ${
+                    htmlContext 
+                    ? 
+                      isDarkMode
+                        ? "bg-green-900/30 text-green-400 border-green-800 hover:bg-green-900/50" 
+                        : "bg-green-50 text-green-700 border-green-200 shadow-sm hover:bg-green-100"
+                    : 
+                      isDarkMode
+                        ? "bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700 hover:text-gray-200"
+                        : "bg-white text-gray-600 border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                }`}
+            >
+                {htmlContext ? (
+                    <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Context Active</span>
+                    </>
+                ) : (
+                    <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <span>Add HTML Context</span>
+                    </>
+                )}
+            </button>
+        </div>
+
         <textarea
           className={`p-4 rounded border outline-none resize-none flex-1 ${theme.input}`}
           placeholder="Input Test Case: 'Login with valid user...'"
@@ -60,7 +97,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!loading) handleGenerate(); } }}
         />
-        {/* Helper Text */}
         <div className={`text-[10px] text-right mt-1 flex justify-end gap-1 items-center ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
            <span>Press <kbd className="font-bold">Ctrl</kbd> + <kbd className="font-bold">Enter</kbd> to generate</span>
         </div>
