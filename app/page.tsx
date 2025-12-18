@@ -14,28 +14,38 @@ import { SmartContextModal } from "./components/modals/SmartContextModal";
 
 export default function Home() {
   const {
+    // 1. INPUT STATES
     input, setInput,
     framework, setFramework,
     provider, setProvider,
     userApiKey, setUserApiKey,
+    
+    // 2. APP DATA STATES
     resultData, loading,
     activeFile, setActiveFile,
     activeTab, setActiveTab,
     fixingId,
+    
+    // 3. UI STATES
     isDarkMode, setIsDarkMode,
     diffModal, setDiffModal,
     toast, setToast,
+    showSettings, setShowSettings,
+    showSmartContextModal, setShowSmartContextModal,
+    
+    // 4. CONTEXT STATES
+    htmlContext, setHtmlContext,
+    imageData, setImageData,
+    
+    // 5. LOGIC & ACTIONS
     validLintItems,
+    preferences, setPreferences,
     handleGenerate,
     handleFixCode,
     applyFix,
     handleDownloadZip,
     updateActiveFileContent,
-    showToast,
-    showSettings, setShowSettings,
-    preferences, setPreferences,
-    htmlContext, setHtmlContext,
-    showSmartContextModal, setShowSmartContextModal,
+    showToast
   } = useQAapp();
 
   const theme = getTheme(isDarkMode);
@@ -44,32 +54,46 @@ export default function Home() {
     <div className={`min-h-screen font-mono text-sm transition-colors duration-300 ${theme.bg} ${theme.text} p-6`}>
       <div className="max-w-[1600px] mx-auto">
         
-        {/* TOP HEADER */}
+        {/* HEADER */}
         <Header 
-            isDarkMode={isDarkMode} 
-            toggleTheme={() => setIsDarkMode(!isDarkMode)} 
-            openSettings={() => setShowSettings(true)} 
+          isDarkMode={isDarkMode} 
+          toggleTheme={() => setIsDarkMode(!isDarkMode)} 
+          openSettings={() => setShowSettings(true)}
         />
 
-        {/* MAIN GRID */}
+        {/* MAIN GRID LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* LEFT: CONTROLS */}
+          {/* LEFT COLUMN: CONTROL PANEL */}
           <ControlPanel
             isDarkMode={isDarkMode}
-            provider={provider} setProvider={setProvider}
-            userApiKey={userApiKey} setUserApiKey={setUserApiKey}
-            framework={framework} setFramework={setFramework}
-            input={input} setInput={setInput}
+            // API Settings
+            provider={provider} 
+            setProvider={setProvider}
+            userApiKey={userApiKey} 
+            setUserApiKey={setUserApiKey}
+            
+            // Test Config
+            framework={framework} 
+            setFramework={setFramework}
+            
+            // Input Area
+            input={input} 
+            setInput={setInput}
+            
+            // Smart Context
+            htmlContext={htmlContext} 
+            setHtmlContext={setHtmlContext}
+            imageData={imageData}
+            openSmartContext={() => setShowSmartContextModal(true)}
+            
+            // Actions
             handleGenerate={handleGenerate}
             loading={loading}
             resultData={resultData}
-            htmlContext={htmlContext}
-            setHtmlContext={setHtmlContext}
-            openSmartContext={() => setShowSmartContextModal(true)}
           />
 
-          {/* RIGHT: WORKSPACE / LOADING / EMPTY */}
+          {/* RIGHT COLUMN: WORKSPACE */}
           <div className="lg:col-span-8 flex flex-col gap-4 h-[calc(100vh-6rem)] custom-scrollbar">
             {resultData ? (
               <Workspace
@@ -95,7 +119,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* OVERLAYS */}
+      {/* --- MODALS SECTION --- */}
+      {/* 1. Settings Modal */}
       <SettingsModal 
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -104,14 +129,18 @@ export default function Home() {
         isDarkMode={isDarkMode}
       />
 
+      {/* 2. Smart Context Modal (HTML & Image) */}
       <SmartContextModal
         isOpen={showSmartContextModal}
         onClose={() => setShowSmartContextModal(false)}
         htmlContext={htmlContext}
         setHtmlContext={setHtmlContext}
+        imageData={imageData}
+        setImageData={setImageData}
         isDarkMode={isDarkMode}
       />
 
+      {/* 3. Diff Modal (Auto Fix Review) */}
       {diffModal && diffModal.show && (
         <DiffModal
           isOpen={diffModal.show}
@@ -124,6 +153,7 @@ export default function Home() {
         />
       )}
 
+      {/* 4. Toast Notifications */}
       {toast && (
         <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
       )}

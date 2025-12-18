@@ -17,36 +17,39 @@ interface ControlPanelProps {
   resultData: ResultData | null;
   htmlContext: string;
   setHtmlContext: (v: string) => void;
+  imageData: string | null;
   openSmartContext: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
-  isDarkMode, provider, setProvider, userApiKey, setUserApiKey,
-  framework, setFramework, input, setInput, handleGenerate, loading, resultData,
-  htmlContext, openSmartContext
+  isDarkMode, provider, setProvider,
+  userApiKey, setUserApiKey, framework, setFramework, 
+  input, setInput, handleGenerate, loading, resultData,
+  htmlContext, imageData, openSmartContext
 }) => {
   const theme = getTheme(isDarkMode);
 
   return (
     <div className="lg:col-span-4 flex flex-col gap-4 sticky top-6 h-[calc(100vh-6rem)] overflow-y-auto pr-1 custom-scrollbar">
-      {/* API SETTINGS */}
+      
+      {/* 1. API SETTINGS */}
       <div className={`p-4 rounded border ${theme.card} shrink-0`}>
         <label className={`font-bold block mb-3 flex items-center gap-2 ${theme.label}`}>AI Settings</label>
+        
         <div className="mb-3">
           <span className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}>Select Provider</span>
           <select value={provider} onChange={(e) => setProvider(e.target.value)} className={`w-full p-2 rounded border outline-none ${theme.input}`}>
-            <option value="gemini">Google Gemini (Flash 2.5)</option>
+            <option value="gemini">Google Gemini (2.5 Flash)</option>
             <option value="openai">OpenAI (GPT-4o)</option>
           </select>
         </div>
         <div>
-          <span className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}>Custom API Key</span>
+          <span className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}>Custom API Key <span className="font-normal normal-case">(Optional)</span></span>
           <input type="password" value={userApiKey} onChange={(e) => setUserApiKey(e.target.value)} placeholder={provider === "openai" ? "sk-proj-..." : "AIzaSy..."} className={`w-full p-2 rounded border outline-none ${theme.input}`} />
-          {/* <p className="text-[10px] mt-1 text-gray-500">*Leave empty to use Server Quota.</p> */}
         </div>
       </div>
 
-      {/* TEST CONFIG */}
+      {/* 2. TEST CONFIGURATION */}
       <div className={`p-4 rounded border ${theme.card} shrink-0`}>
         <label className={`font-bold block mb-2 ${theme.label}`}>Test Configuration</label>
         <select value={framework} onChange={(e) => setFramework(e.target.value)} className={`w-full p-2 rounded border outline-none mb-2 ${theme.input}`}>
@@ -55,8 +58,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         </select>
       </div>
 
-      {/* INPUT */}
+      {/* 3. INPUT AREA */}
       <div className="flex flex-col flex-1 min-h-[200px]">
+        
+        {/* TOOLBAR */}
         <div className="flex justify-between items-end mb-2">
             <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.subtext}`}>
               Test Scenario
@@ -65,26 +70,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
                 onClick={openSmartContext}
                 className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-md border transition-all duration-200 font-medium ${
-                    htmlContext 
-                    ? 
+                    htmlContext || imageData
+                    ? // ACTIVE STATE
                       isDarkMode
                         ? "bg-green-900/30 text-green-400 border-green-800 hover:bg-green-900/50" 
                         : "bg-green-50 text-green-700 border-green-200 shadow-sm hover:bg-green-100"
-                    : 
+                    : // INACTIVE STATE
                       isDarkMode
                         ? "bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700 hover:text-gray-200"
                         : "bg-white text-gray-600 border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
                 }`}
             >
-                {htmlContext ? (
+                {htmlContext || imageData ? (
                     <>
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         <span>Context Active</span>
+                        <div className="flex gap-1 ml-1.5 border-l pl-1.5 border-current/20">
+                            {imageData && <span title="Image added">🖼️</span>}
+                            {htmlContext && <span title="HTML added">📄</span>}
+                        </div>
                     </>
                 ) : (
                     <>
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                        <span>Add HTML Context</span>
+                        <span>Add Visual/HTML Context</span>
                     </>
                 )}
             </button>
@@ -106,7 +115,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         {loading ? <>Processing <span className="animate-pulse">...</span></> : <>Generate Structure</>}
       </button>
 
-      {/* RISK ANALYSIS */}
+      {/* 4. RISK ANALYSIS */}
       {resultData && resultData.risk_analysis && (
         <div className={`border rounded p-4 shadow-lg animate-fade-in shrink-0 ${theme.card}`}>
           <div className="flex justify-between mb-2">

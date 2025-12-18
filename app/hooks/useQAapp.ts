@@ -17,14 +17,23 @@ export const useQAapp = () => {
   
   const [fixingId, setFixingId] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const [htmlContext, setHtmlContext] = useState("");
+  
+  // Modal States
+  const [showSettings, setShowSettings] = useState(false);
   const [showSmartContextModal, setShowSmartContextModal] = useState(false);
   
-  // Toast State
+  // Context States
+  const [htmlContext, setHtmlContext] = useState("");
+  const [imageData, setImageData] = useState<string | null>(null);
+
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    selectorType: "data-testid",
+    quoteStyle: "single",
+    assertionStyle: "should"
+  });
+  
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   
-  // Diff Modal State
   const [diffModal, setDiffModal] = useState<{
     show: boolean;
     oldCode: string;
@@ -33,20 +42,7 @@ export const useQAapp = () => {
     lintId: number;
   } | null>(null);
 
-  // --- ACTIONS ---
-  const showToast = (msg: string, type: "success" | "error" = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const [showSettings, setShowSettings] = useState(false);
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    selectorType: "data-testid",
-    quoteStyle: "single",
-    assertionStyle: "should"
-  });
-
-  // EFFECT: Load preferences on mount
+  // --- EFFECTS ---
   useEffect(() => {
     const saved = localStorage.getItem('qa_copilot_prefs');
     if (saved) {
@@ -58,6 +54,12 @@ export const useQAapp = () => {
     }
   }, []);
 
+  // --- ACTIONS ---
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setResultData(null);
@@ -68,14 +70,21 @@ export const useQAapp = () => {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testCase: input, framework, provider, userApiKey, preferences, htmlContext }),
+        body: JSON.stringify({ 
+            testCase: input, 
+            framework, 
+            provider,
+            userApiKey,
+            preferences,
+            htmlContext,
+            imageData 
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal request ke server");
 
       const parsed = JSON.parse(data.result);
-      // Add IDs to lint report
       if (parsed.lint_report) {
         parsed.lint_report = parsed.lint_report.map((item: any, idx: number) => ({ ...item, id: idx }));
       }
@@ -105,7 +114,7 @@ export const useQAapp = () => {
           fileName: targetFile.path,
           provider,
           userApiKey,
-          preferences
+          preferences, 
         }),
       });
       const data = await res.json();
@@ -149,7 +158,7 @@ export const useQAapp = () => {
       saveAs(content, "qa-copilot-project.zip");
       showToast("Project downloaded as ZIP! 📦");
     } catch (error) {
-      showToast("Error creating ZIP file ", "error");
+      showToast("Failed to download ZIP", "error");
     }
   };
 
@@ -162,20 +171,17 @@ export const useQAapp = () => {
     setResultData({ ...resultData, generated_files: newFiles });
   };
 
-  // Derived State for Valid Lint Items
   const validLintItems = resultData?.lint_report?.filter((lint) => {
     const targetFile = resultData?.generated_files?.find((f) => f.path.includes(lint.file));
     return targetFile && lint.file.length > 2 && lint.file !== "N/A";
   }) || [];
 
   return {
-    // State
     input, setInput,
     framework, setFramework,
     provider, setProvider,
     userApiKey, setUserApiKey,
-    resultData,
-    loading,
+    resultData, loading,
     activeFile, setActiveFile,
     activeTab, setActiveTab,
     fixingId,
@@ -185,10 +191,11 @@ export const useQAapp = () => {
     validLintItems,
     showSettings, setShowSettings,
     preferences, setPreferences,
-    htmlContext, setHtmlContext,
+    
     showSmartContextModal, setShowSmartContextModal,
+    htmlContext, setHtmlContext,
+    imageData, setImageData,
 
-    // Actions
     handleGenerate,
     handleFixCode,
     applyFix,

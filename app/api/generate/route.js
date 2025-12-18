@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 
@@ -25,106 +25,86 @@ const FRAMEWORK_RULES = {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const {
-      action,
-      testCase,
-      framework,
-      provider,
-      model,
-      currentCode,
-      errorMessage,
+    const { 
+      action, 
+      testCase, 
+      framework, 
+      provider, 
+      currentCode, 
+      errorMessage, 
       fileName,
       userApiKey,
       preferences,
       htmlContext,
+      imageData
     } = body;
 
-    let htmlInstruction = "";
-    if (htmlContext && htmlContext.trim().length > 0) {
-      htmlInstruction = `
-        <smart_context>
-          The user has provided the ACTUAL HTML STRUCTURE of the page.
-          You MUST use the selectors (IDs, Classes, Names) found in this HTML.
-          Do NOT guess selectors if they are present here.
-          
-          [HTML SNIPPET START]
-          ${htmlContext}
-          [HTML SNIPPET END]
-        </smart_context>
-        `;
-    }
-
+    // --- 1. BUILD STYLE GUIDE ---
     let styleGuideInstruction = "";
     if (preferences) {
-      styleGuideInstruction = `
+        styleGuideInstruction = `
         <coding_style_rules>
           IMPORTANT: You are configured to use a SPECIFIC CODING STYLE.
           Do NOT revert to default Cypress patterns.
           
           1. SELECTOR STRATEGY: 
              - PREFERRED: "${preferences.selectorType}"
-             ${
-               preferences.selectorType === "data-testid"
-                 ? "- RULE: Use cy.get(\"[data-testid='value']\")"
-                 : ""
-             }
-             ${
-               preferences.selectorType === "id"
-                 ? "- RULE: Prefer IDs (#id) over classes."
-                 : ""
-             }
+             ${preferences.selectorType === 'data-testid' ? '- RULE: Use cy.get("[data-testid=\'value\']")' : ''}
+             ${preferences.selectorType === 'id' ? '- RULE: Prefer IDs (#id) over classes.' : ''}
              
           2. QUOTE STYLE: 
-             - FORCE: "${
-               preferences.quoteStyle === "single"
-                 ? "Single Quotes ('')"
-                 : 'Double Quotes ("")'
-             }"
+             - FORCE: "${preferences.quoteStyle === 'single' ? "Single Quotes ('')" : "Double Quotes (\"\")"}"
              
           3. ASSERTION STYLE (CRITICAL):
              - MODE: "${preferences.assertionStyle}"
-             
-             ${
-               preferences.assertionStyle === "should"
-                 ? `
-               [MODE: CHAINED]
-               - USE: cy.get(...).should('be.visible')
-               - FORBIDDEN: expect(...)
-               `
-                 : `
-               [MODE: EXPLICIT EXPECT]
-               - RULE: Cypress is async. You MUST wrap assertions in .then().
-               - WRONG: expect(cy.get(..)).to.exist
-               - CORRECT PATTERN:
-                 cy.get(selector).then(($el) => {
-                    expect($el).to.be.visible;
-                    expect($el).to.have.text("Value");
-                 });
-               - FORBIDDEN: .should()
-               `
+             ${preferences.assertionStyle === 'should' 
+               ? `[MODE: CHAINED] USE: cy.get(...).should('be.visible'). FORBIDDEN: expect(...)` 
+               : `[MODE: EXPLICIT EXPECT] RULE: Cypress is async. WRAP in .then(). CORRECT: cy.get(selector).then(($el) => { expect($el).to.be.visible; }); FORBIDDEN: .should()`
              }
         </coding_style_rules>
         `;
     }
 
+    // --- 2. BUILD CONTEXT INSTRUCTIONS (HTML & IMAGE) ---
+    let contextInstruction = "";
+    
+    if (htmlContext && htmlContext.trim().length > 0) {
+        contextInstruction += `
+        <html_context>
+          The user provided an HTML snippet. USE THESE EXACT SELECTORS (IDs, Classes).
+          ${htmlContext}
+        </html_context>
+        `;
+    }
+
+    if (imageData) {
+        contextInstruction += `
+        <visual_context>
+          An image of the UI has been provided.
+          TASK: Analyze the image to identify interactive elements (buttons, inputs) and their likely purpose.
+          COMBINE this visual understanding with the Test Case description to generate the script.
+        </visual_context>
+        `;
+    }
+
     const selectedRule = FRAMEWORK_RULES[framework] || FRAMEWORK_RULES.cypress;
 
-    // --- 3. SYSTEM PROMPT  ---
+    // --- SYSTEM PROMPTS ---
     const generateSystemPrompt = `
       Role: Senior QA Automation Architect.
       Task: Generate a robust Page Object Model (POM) test structure.
       
       ${styleGuideInstruction}
-      ${htmlInstruction}
+      ${contextInstruction}
 
       CRITICAL INSTRUCTIONS:
       1. Follow the "STRICT FILE STRUCTURE" below exactly.
       2. If Playwright is selected, NEVER create a 'cypress' folder.
-      3. Adhere strictly to the <coding_style_rules> defined above.
+      3. Adhere strictly to the <coding_style_rules>.
       
       Response Format (JSON Only, Minified):
       {
-        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia (if test case input in Indonesian) / English (if test case input in English)" },
+        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia" },
         "lint_report": [],
         "generated_files": [ { "path": "path/to/file.ext", "content": "code..." } ]
       }
@@ -136,112 +116,94 @@ export async function POST(request) {
     const fixSystemPrompt = `
       Role: Senior QA Code Reviewer.
       Task: Fix the provided code based on the error.
-      
       ${styleGuideInstruction}
-
-      Rules: 
-      1. Return ONLY the fixed code string. No markdown formatting.
-      2. Ensure the fixed code follows the <coding_style_rules>.
+      Rules: Return ONLY the fixed code string. No markdown formatting.
     `;
 
-    // PROVIDER 1: OPENAI (GPT-4o / GPT-3.5)
-    if (provider === "openai") {
-      const apiKey = userApiKey || process.env.OPENAI_API_KEY;
-      if (!apiKey)
-        return NextResponse.json(
-          { error: "OpenAI API Key not found." },
-          { status: 401 }
-        );
+    // PROVIDER 1: OPENAI
+    if (provider === 'openai') {
+        const apiKey = userApiKey || process.env.OPENAI_API_KEY;
+        if (!apiKey) return NextResponse.json({ error: 'OpenAI API Key not found.' }, { status: 401 });
 
-      const openai = new OpenAI({ apiKey });
+        const openai = new OpenAI({ apiKey });
+        
+        let messages = [];
+        if (action === 'fix') {
+            messages = [
+                { role: "system", content: fixSystemPrompt },
+                { role: "user", content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}` }
+            ];
+        } else {
+            messages = [
+                { role: "system", content: generateSystemPrompt },
+                { role: "user", content: `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}\n${contextInstruction}` }
+            ];
+        }
 
-      let messages = [];
-      if (action === "fix") {
-        messages = [
-          { role: "system", content: fixSystemPrompt },
-          {
-            role: "user",
-            content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}`,
-          },
-        ];
-      } else {
-        messages = [
-          { role: "system", content: generateSystemPrompt },
-          {
-            role: "user",
-            content: `Test Case: ${testCase}\n\nREMINDER: Follow these style rules:\n${styleGuideInstruction}`,
-          },
-        ];
-      }
+        const completion = await openai.chat.completions.create({
+            messages: messages,
+            model: "gpt-4o",
+            response_format: action === 'fix' ? undefined : { type: "json_object" }
+        });
 
-      const completion = await openai.chat.completions.create({
-        messages: messages,
-        model: model || "gpt-4o",
-        response_format: action === "fix" ? undefined : { type: "json_object" },
-      });
+        let result = completion.choices[0].message.content;
+        if (action === 'fix') result = result.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
 
-      let result = completion.choices[0].message.content;
-      if (action === "fix")
-        result = result
-          .replace(/^```[a-z]*\n/i, "")
-          .replace(/```$/g, "")
-          .trim();
-
-      return NextResponse.json({ result });
+        return NextResponse.json({ result });
     }
 
-    // PROVIDER 2: GOOGLE GEMINI (DEFAULT)
+    // PROVIDER 2: GOOGLE GEMINI
     else {
-      const apiKey = userApiKey || process.env.GEMINI_API_KEY;
-      if (!apiKey)
-        return NextResponse.json(
-          { error: "Gemini API Key not found." },
-          { status: 401 }
-        );
+        const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+        if (!apiKey) return NextResponse.json({ error: 'Gemini API Key not found.' }, { status: 401 });
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const selectedModelName = model || "gemini-2.5-flash";
+        const genAI = new GoogleGenerativeAI(apiKey);
+        
+        const geminiModel = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: action === 'fix' ? "text/plain" : "application/json" },
+            systemInstruction: action === 'fix' ? fixSystemPrompt : generateSystemPrompt
+        });
 
-      const geminiModel = genAI.getGenerativeModel({
-        model: selectedModelName,
-        generationConfig: {
-          responseMimeType:
-            action === "fix" ? "text/plain" : "application/json",
-        },
-        systemInstruction:
-          action === "fix" ? fixSystemPrompt : generateSystemPrompt,
-      });
+        // BUILD PAYLOAD
+        let promptParts = [];
 
-      let prompt = "";
-      if (action === "fix") {
-        prompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}\n\nIMPORTANT: Maintain the requested coding style!`;
-      } else {
-        prompt = `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}`;
-      }
+        // 1. Image Part (If exists & not fixing)
+        if (imageData && action !== 'fix') {
+            const base64Data = imageData.split(',')[1];
+            const mimeType = imageData.split(';')[0].split(':')[1];
+            promptParts.push({
+                inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType
+                }
+            });
+        }
 
-      const result = await geminiModel.generateContent(prompt);
-      let resultText = result.response.text();
+        // 2. Text Part
+        let textPrompt = "";
+        if (action === 'fix') {
+            textPrompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}\n\nIMPORTANT: Maintain style!`;
+        } else {
+            textPrompt = `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}\n${contextInstruction}`;
+        }
+        promptParts.push({ text: textPrompt });
 
-      if (action === "fix") {
-        resultText = resultText
-          .replace(/^```[a-z]*\n/i, "")
-          .replace(/```$/g, "")
-          .trim();
-      }
+        const result = await geminiModel.generateContent(promptParts);
+        let resultText = result.response.text();
 
-      return NextResponse.json({ result: resultText });
+        if (action === 'fix') {
+            resultText = resultText.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        }
+
+        return NextResponse.json({ result: resultText });
     }
+
   } catch (error) {
     console.error("ERROR BACKEND:", error);
-    if (error.status === 429 || error.message?.includes("429")) {
-      return NextResponse.json(
-        { error: "API Quota Exceeded (Rate Limit)." },
-        { status: 429 }
-      );
+    if (error.status === 429 || error.message?.includes('429')) {
+       return NextResponse.json({ error: "API Quota Exceeded (Rate Limit)." }, { status: 429 });
     }
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
