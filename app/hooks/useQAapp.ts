@@ -126,7 +126,7 @@ export const useQAapp = () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal request ke server");
+      if (!res.ok) throw new Error(data.error || "Failed to request server");
 
       const parsed = JSON.parse(data.result);
       if (parsed.lint_report) {
@@ -136,7 +136,7 @@ export const useQAapp = () => {
       if (parsed.generated_files?.length > 0) setActiveFile(parsed.generated_files[0]);
       saveToHistory(input, framework, parsed);
     } catch (err: any) {
-      alert(err.message || "Gagal connect server");
+      alert(err.message || "Failed to connect server");
     } finally {
       setLoading(false);
     }
@@ -145,7 +145,7 @@ export const useQAapp = () => {
   const handleFixCode = async (lintItem: LintItem) => {
     if (!resultData) return;
     const targetFile = resultData.generated_files.find((f) => f.path.includes(lintItem.file));
-    if (!targetFile) return alert("File tidak ditemukan.");
+    if (!targetFile) return alert("File not found.");
 
     setFixingId(lintItem.id);
     try {
@@ -173,7 +173,7 @@ export const useQAapp = () => {
         });
       }
     } catch (e) {
-      alert("Gagal mengambil perbaikan kode.");
+      alert("Failed to fetch code fix.");
     } finally {
       setFixingId(null);
     }
@@ -190,7 +190,7 @@ export const useQAapp = () => {
     if (activeFile && activeFile.path === diffModal.fileName) {
       setActiveFile({ ...activeFile, content: diffModal.newCode });
     }
-    showToast("Fix applied successfully! 🚀");
+    showToast("Fix applied successfully!");
     setDiffModal(null);
   };
 
@@ -201,7 +201,7 @@ export const useQAapp = () => {
       resultData.generated_files.forEach((file) => zip.file(file.path, file.content));
       const content = await zip.generateAsync({ type: "blob" });
       saveAs(content, "qa-copilot-project.zip");
-      showToast("Project downloaded as ZIP! 📦");
+      showToast("Project downloaded as ZIP!");
     } catch (error) {
       showToast("Failed to download ZIP", "error");
     }
@@ -244,11 +244,11 @@ export const useQAapp = () => {
       }
 
       setHtmlContext(data.html);
-      showToast("URL crawled successfully! HTML extracted. 🕷️");
+      showToast("URL crawled successfully! HTML extracted.");
       
     } catch (err: any) {
       console.error(err);
-      showToast(err.message || "Gagal mengambil URL. Pastikan website publik.", "error");
+      showToast(err.message || "Failed to fetch URL. Make sure the website is public.", "error");
     } finally {
       setIsCrawling(false);
     }

@@ -38,7 +38,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
           
           {/* Header */}
           <div className={`p-4 border-b flex justify-between items-center ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
-            <h3 className={`font-bold text-lg ${theme.text}`}>🕒 Recent Projects</h3>
+            <h3 className={`font-bold text-lg ${theme.text}`}>Recent Projects</h3>
             <button onClick={onClose} className="text-2xl opacity-50 hover:opacity-100">&times;</button>
           </div>
 
@@ -46,7 +46,6 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
           <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
             {history.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                <span className={`text-6xl mb-4 ${theme.emptyIcon}`}>📂</span>
                 <p className={`text-sm ${theme.subtext}`}>No history yet.</p>
                 <p className={`text-xs ${theme.subtext}`}>Generate code to save projects automatically.</p>
               </div>

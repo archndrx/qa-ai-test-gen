@@ -37,7 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         
         {/* Header */}
         <div className={`p-4 border-b flex justify-between items-center ${theme.header}`}>
-          <h3 className="font-bold text-lg flex items-center gap-2">⚙️ Global Preferences</h3>
+          <h3 className="font-bold text-lg flex items-center gap-2">Global Preferences</h3>
           <button onClick={onClose} className="text-2xl opacity-50 hover:opacity-100">&times;</button>
         </div>
 

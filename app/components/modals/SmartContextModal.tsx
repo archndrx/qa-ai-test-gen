@@ -148,7 +148,7 @@ export const SmartContextModal: React.FC<SmartContextModalProps> = ({
                     isPasting ? "scale-125" : ""
                   }`}
                 >
-                  {isPasting ? "⚡" : "🖼️"}
+                  {isPasting ? "⚡" : ""}
                 </span>
                 <p className="text-sm font-bold">Click to upload</p>
                 <p className={`text-xs mt-1 mb-2 ${theme.subtext}`}>or</p>
