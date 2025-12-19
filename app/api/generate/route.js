@@ -102,9 +102,16 @@ export async function POST(request) {
       2. If Playwright is selected, NEVER create a 'cypress' folder.
       3. Adhere strictly to the <coding_style_rules>.
       
+      [FEW-SHOT EXAMPLES]
+      - Bad Input: "Login page" -> Output: cy.get('input').type('user') (Too generic)
+      - Good Input: "Login page with HTML <input id='user'>" -> Output: 
+         class LoginPage { 
+           get username() { return cy.get('#user'); } 
+         }
+
       Response Format (JSON Only, Minified):
       {
-        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia" },
+        "risk_analysis": { "score": (1-10), "priority": "High/Medium/Low", "reasoning": "Bahasa Indonesia (if the input is in Indonesian) / English (if the input is in English)" },
         "lint_report": [],
         "generated_files": [ { "path": "path/to/file.ext", "content": "code..." } ]
       }
@@ -165,10 +172,10 @@ export async function POST(request) {
             systemInstruction: action === 'fix' ? fixSystemPrompt : generateSystemPrompt
         });
 
-        // BUILD PAYLOAD
+        // --- STEP 1: DRAFT GENERATION ---
         let promptParts = [];
 
-        // 1. Image Part (If exists & not fixing)
+        // 1. Image Part
         if (imageData && action !== 'fix') {
             const base64Data = imageData.split(',')[1];
             const mimeType = imageData.split(';')[0].split(':')[1];
@@ -189,14 +196,48 @@ export async function POST(request) {
         }
         promptParts.push({ text: textPrompt });
 
-        const result = await geminiModel.generateContent(promptParts);
-        let resultText = result.response.text();
+        const draftResult = await geminiModel.generateContent(promptParts);
+        let draftCode = draftResult.response.text();
 
-        if (action === 'fix') {
-            resultText = resultText.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        // --- STEP 2: SELF-CORRECTION (Refinement) ---
+        if (action !== 'fix') {
+             const refinementModel = genAI.getGenerativeModel({ 
+                model: "gemini-2.5-flash",
+                generationConfig: { responseMimeType: "application/json" } 
+             });
+
+             const refinementPrompt = `
+               You are a QA Code Reviewer. You have just generated the following JSON output for a Test Automation project:
+               
+               ${draftCode}
+               
+               TASK: Review and Refine this JSON based on these strict criteria:
+               1. SELECTOR ACCURACY: If HTML context was provided in the previous step, did the code use the EXACT IDs/Classes?
+               2. CODING STYLE: Did the code strictly follow:
+                  - Quote Style: ${preferences?.quoteStyle || 'Any'}
+                  - Assertion Style: ${preferences?.assertionStyle || 'Any'}
+               3. SYNTAX: Are there any syntax errors?
+               
+               OUTPUT: Return ONLY the corrected JSON. If the original was perfect, return it as is. Do NOT add markdown block.
+             `;
+             
+             try {
+                const refinedResult = await refinementModel.generateContent(refinementPrompt);
+                draftCode = refinedResult.response.text();
+             } catch (refineError) {
+                console.warn("Refinement failed, using draft code.", refineError);
+             }
         }
 
-        return NextResponse.json({ result: resultText });
+        let finalResult = draftCode;
+
+        if (action === 'fix') {
+            finalResult = finalResult.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        } else {
+             finalResult = finalResult.replace(/^```json\n/i, "").replace(/^```\n/i, "").replace(/```$/g, "").trim();
+        }
+
+        return NextResponse.json({ result: finalResult });
     }
 
   } catch (error) {
