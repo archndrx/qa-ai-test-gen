@@ -21,6 +21,7 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Or you can see the actual result from this repo here : [https://qa-testgen.netlify.app/](https://qa-testgen.netlify.app/)
 
 Note :
 If you don't want to put your API KEY in the local env, you can directly input it in the Custom API Key column on the frontend according to the provider you choose.
