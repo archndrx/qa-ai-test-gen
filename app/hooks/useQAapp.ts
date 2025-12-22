@@ -113,9 +113,21 @@ export const useQAapp = () => {
   const loadHistoryItem = (item: HistoryItem) => {
     setInput(item.testCase);
     setFramework(item.framework);
-    setResultData(item.resultData);
-    if (item.resultData.generated_files.length > 0) {
-      setActiveFile(item.resultData.generated_files[0]);
+
+    const processedFiles = item.resultData.generated_files.map((f) => ({
+      ...f,
+      originalContent: f.originalContent || f.content, 
+    }));
+
+    const processedResult = {
+      ...item.resultData,
+      generated_files: processedFiles,
+    };
+
+    setResultData(processedResult);
+
+    if (processedFiles.length > 0) {
+      setActiveFile(processedFiles[0]);
     }
     setShowHistorySidebar(false);
     showToast("Project loaded from history! 📂");
@@ -153,6 +165,15 @@ export const useQAapp = () => {
       if (!res.ok) throw new Error(data.error || "Failed to request server");
 
       const parsed = JSON.parse(data.result);
+      if (parsed.generated_files) {
+        parsed.generated_files = parsed.generated_files.map(
+          (f: GeneratedFile) => ({
+            ...f,
+            originalContent: f.content,
+          })
+        );
+      }
+
       if (parsed.lint_report) {
         parsed.lint_report = parsed.lint_report.map(
           (item: any, idx: number) => ({ ...item, id: idx })
@@ -211,8 +232,15 @@ export const useQAapp = () => {
   const applyFix = () => {
     if (!diffModal || !resultData) return;
     const updatedFiles = resultData.generated_files.map((f) =>
-      f.path === diffModal.fileName ? { ...f, content: diffModal.newCode } : f
+      f.path === diffModal.fileName
+        ? {
+            ...f,
+            content: diffModal.newCode,
+            originalContent: diffModal.newCode,
+          }
+        : f
     );
+
     let updatedLint = resultData.lint_report;
     if (diffModal.lintId !== -1) {
       updatedLint = resultData.lint_report.filter(
@@ -227,7 +255,11 @@ export const useQAapp = () => {
     });
 
     if (activeFile && activeFile.path === diffModal.fileName) {
-      setActiveFile({ ...activeFile, content: diffModal.newCode });
+      setActiveFile({
+        ...activeFile,
+        content: diffModal.newCode,
+        originalContent: diffModal.newCode,
+      });
     }
     showToast("Changes applied successfully!");
     setDiffModal(null);
@@ -421,7 +453,7 @@ export const useQAapp = () => {
     isRefining,
     handleRefineCode,
 
-    // 5. HISTORY STATES (BARU)
+    // 5. HISTORY STATES
     history,
     showHistorySidebar,
     setShowHistorySidebar,

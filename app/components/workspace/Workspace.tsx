@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-clike";
@@ -61,6 +61,32 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
   const [selectedText, setSelectedText] = useState("");
   const [showExplainBtn, setShowExplainBtn] = useState(false);
   const [btnPos, setBtnPos] = useState({ top: 0, left: 0 });
+
+  const [sessionOriginal, setSessionOriginal] = useState<string>("");
+
+  useEffect(() => {
+    if (activeFile) {
+      setSessionOriginal(activeFile.content);
+    }
+  }, [activeFile?.path]);
+
+  const isModified = useMemo(() => {
+    if (!activeFile) return false;
+
+    if (activeFile.originalContent) {
+      return activeFile.content !== activeFile.originalContent;
+    }
+
+    return activeFile.content !== sessionOriginal;
+  }, [activeFile, sessionOriginal]);
+
+  const handleResetFile = () => {
+    if (!activeFile) return;
+
+    const original = activeFile.originalContent || sessionOriginal;
+    updateActiveFileContent(original);
+    showToast("Code reverted to original version!");
+  };
 
   // Click outside handler
   useEffect(() => {
@@ -135,21 +161,23 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
     if (!path) return null;
     const parts = path.split("/");
     const fileName = parts.pop();
+
+    const parentFolder = parts.length > 0 ? parts[parts.length - 1] : null;
+
     return (
-      <div className="flex items-center gap-1 text-xs font-mono overflow-hidden whitespace-nowrap">
-        {parts.map((folder, i) => (
-          <div
-            key={i}
-            className="flex items-center flex-shrink-0 text-gray-500 dark:text-gray-400"
-          >
+      <div className="flex items-center gap-1 text-xs font-mono overflow-hidden whitespace-nowrap min-w-0">
+        {parentFolder && (
+          <div className="flex items-center flex-shrink-0 text-gray-500 dark:text-gray-400 hidden sm:flex">
             <span className="mr-0.5 opacity-70">📂</span>
-            <span>{folder}</span>
+            <span className="max-w-[80px] truncate">{parentFolder}</span>
             <span className="mx-1 opacity-40">›</span>
           </div>
-        ))}
-        <div className="flex items-center font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">
-          <span className="mr-1">📄</span>
-          <span>{fileName}</span>
+        )}
+        <div className="flex items-center font-bold text-blue-600 dark:text-blue-400 min-w-0 flex-1">
+          <span className="mr-1 flex-shrink-0">📄</span>
+          <span className="truncate" title={fileName}>
+            {fileName}
+          </span>
         </div>
       </div>
     );
@@ -200,6 +228,16 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
 
           {activeTab === "code" && (
             <div className="flex gap-2 py-1 ml-2 items-center">
+              {isModified && (
+                <button
+                  onClick={handleResetFile}
+                  className="flex items-center justify-center w-8 h-8 rounded transition-all duration-200 border border-transparent text-gray-400 hover:text-red-600 hover:bg-red-50 dark:text-gray-500 dark:hover:text-red-400 dark:hover:bg-red-900/30"
+                  title="Reset to Original AI Code"
+                >
+                  <span className="text-sm font-bold">↺</span>
+                </button>
+              )}
+
               <button
                 onClick={handleCopyCode}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded transition-all duration-200 border border-transparent ${
@@ -316,6 +354,12 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
                       <span className="mr-2 opacity-70">📄</span>
                       {file.path.split("/").pop()}
                     </div>
+                    {file.originalContent &&
+                      file.content !== file.originalContent && (
+                        <span className="text-[10px] text-yellow-500 ml-auto font-bold absolute right-2 top-3">
+                          ●
+                        </span>
+                      )}
                   </button>
                 ))}
               </div>
@@ -451,7 +495,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
         </div>
       </div>
 
-      {/* FLOATING EXPLAIN BUTTON*/}
+      {/* FLOATING EXPLAIN BUTTON */}
       {showExplainBtn && activeTab === "code" && (
         <div
           style={{
@@ -475,7 +519,6 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
             <span className="text-base bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent font-bold transition-transform group-hover:rotate-12">
               ✨
             </span>
-
             <div className="flex flex-col items-start leading-none">
               <span className="text-[11px] font-bold font-sans tracking-wide">
                 Explain Code

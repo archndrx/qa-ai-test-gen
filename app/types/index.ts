@@ -1,6 +1,7 @@
 export interface GeneratedFile {
   path: string;
   content: string;
+  originalContent?: string;
 }
 
 export interface LintItem {
