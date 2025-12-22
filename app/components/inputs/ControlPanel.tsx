@@ -116,20 +116,36 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </button>
 
       {/* 4. RISK ANALYSIS */}
-      {resultData && resultData.risk_analysis && (
-        <div className={`border rounded p-4 shadow-lg animate-fade-in shrink-0 ${theme.card}`}>
-          <div className="flex justify-between mb-2">
-            <span className={`font-bold ${theme.label}`}>Risk Analysis</span>
-            <span className={`px-2 rounded text-xs font-bold flex items-center ${getPriorityColor(resultData.risk_analysis.priority)}`}>
-              {resultData.risk_analysis.priority}
-            </span>
+      {resultData && resultData.risk_analysis && (() => {
+        const score = resultData.risk_analysis.score;
+        let derivedPriority = "Low";
+        let badgeColor = "bg-green-500 text-white";
+
+        if (score >= 8) {
+          derivedPriority = "High";
+          badgeColor = "bg-red-600 text-white";
+        } else if (score >= 5) {
+          derivedPriority = "Medium";
+          badgeColor = "bg-yellow-500 text-black";
+        }
+        
+        return (
+          <div className={`border rounded p-4 shadow-lg animate-fade-in shrink-0 ${theme.card}`}>
+            <div className="flex justify-between mb-2">
+              <span className={`font-bold ${theme.label}`}>Risk Analysis</span>
+              <span className={`px-2 rounded text-xs font-bold flex items-center ${badgeColor}`}>
+                {derivedPriority}
+              </span>
+            </div>
+            <div className="text-3xl font-bold mb-2">{score}/10</div>
+            <div className="mt-2">
+              <p className={`text-xs pt-2 border-t border-dashed ${theme.subtext} ${isDarkMode ? "border-gray-700" : "border-gray-300"}`}>
+                {resultData.risk_analysis.reasoning}
+              </p>
+            </div>
           </div>
-          <div className="text-3xl font-bold mb-2">{resultData.risk_analysis.score}/10</div>
-          <div className="mt-2">
-            <p className={`text-xs pt-2 border-t border-dashed ${theme.subtext} border-gray-500`}>{resultData.risk_analysis.reasoning}</p>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
