@@ -21,12 +21,11 @@ export const SmartContextModal: React.FC<SmartContextModalProps> = ({
   setImageData,
   isDarkMode,
   onCrawl,
-  isCrawling, 
+  isCrawling,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPasting, setIsPasting] = useState(false);
   const [urlInput, setUrlInput] = useState("");
-  
 
   // Theme configuration
   const theme = {
@@ -207,39 +206,55 @@ export const SmartContextModal: React.FC<SmartContextModalProps> = ({
 
           {/* --- SECTION 2: HTML INPUT --- */}
           <div>
-             <label className={`block text-xs font-bold uppercase mb-3 ${theme.subtext}`}>2. HTML Snippet</label>
-             <div className="flex gap-2 mb-3">
-                <input 
-                    type="text" 
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    placeholder="Enter website URL (e.g., https://example.com/login)"
-                    className={`flex-1 p-2.5 rounded border outline-none text-xs ${theme.input}`}
-                    onKeyDown={(e) => e.key === 'Enter' && onCrawl(urlInput)}
-                />
-                <button 
-                    onClick={() => onCrawl(urlInput)}
-                    disabled={isCrawling || !urlInput}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                    {isCrawling ? <span className="animate-spin">⌛</span> : "🕷️"}
-                    {isCrawling ? "Crawling..." : "Fetch HTML"}
-                </button>
-             </div>
-
-             <div className="flex items-center gap-2 mb-2">
-                 <div className={`h-px flex-1 ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
-                 <span className={`text-[10px] uppercase font-bold ${theme.subtext}`}>OR PASTE CODE</span>
-                 <div className={`h-px flex-1 ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
-             </div>
-
-             <textarea
-                value={htmlContext}
-                onChange={(e) => setHtmlContext(e.target.value)}
-                placeholder='Example: <form id="login-form">...</form>'
-                className={`w-full p-4 rounded border outline-none font-mono text-xs resize-y ${theme.input}`}
-                style={{ minHeight: "150px" }}
+            <label
+              className={`block text-xs font-bold uppercase mb-3 ${theme.subtext}`}
+            >
+              2. HTML Snippet
+            </label>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="Enter website URL (e.g., https://example.com/login)"
+                className={`flex-1 p-2.5 rounded border outline-none text-xs ${theme.input}`}
+                onKeyDown={(e) => e.key === "Enter" && onCrawl(urlInput)}
               />
+              <button
+                onClick={() => onCrawl(urlInput)}
+                disabled={isCrawling || !urlInput}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isCrawling ? <span className="animate-spin">⌛</span> : "🕷️"}
+                {isCrawling ? "Crawling..." : "Fetch HTML"}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className={`h-px flex-1 ${
+                  isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                }`}
+              ></div>
+              <span
+                className={`text-[10px] uppercase font-bold ${theme.subtext}`}
+              >
+                OR PASTE CODE
+              </span>
+              <div
+                className={`h-px flex-1 ${
+                  isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                }`}
+              ></div>
+            </div>
+
+            <textarea
+              value={htmlContext}
+              onChange={(e) => setHtmlContext(e.target.value)}
+              placeholder='Example: <form id="login-form">...</form>'
+              className={`w-full p-4 rounded border outline-none font-mono text-xs resize-y ${theme.input}`}
+              style={{ minHeight: "150px" }}
+            />
           </div>
         </div>
 

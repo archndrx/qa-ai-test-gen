@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface RefineInputProps {
   onRefine: (instruction: string) => void;
@@ -6,30 +6,40 @@ interface RefineInputProps {
   isDarkMode: boolean;
 }
 
-export const RefineInput: React.FC<RefineInputProps> = ({ onRefine, isLoading, isDarkMode }) => {
+export const RefineInput: React.FC<RefineInputProps> = ({
+  onRefine,
+  isLoading,
+  isDarkMode,
+}) => {
   const [instruction, setInstruction] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (instruction.trim()) {
       onRefine(instruction);
-      setInstruction(""); 
+      setInstruction("");
     }
   };
 
   const theme = {
     bg: isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200",
-    input: isDarkMode ? "bg-gray-900 text-white placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400",
+    input: isDarkMode
+      ? "bg-gray-900 text-white placeholder-gray-500"
+      : "bg-gray-50 text-gray-900 placeholder-gray-400",
     text: isDarkMode ? "text-gray-300" : "text-gray-600",
   };
 
   return (
     <div className={`mt-4 p-3 rounded-lg border ${theme.bg}`}>
-      <label className={`text-xs font-bold uppercase mb-2 block flex items-center gap-2 ${theme.text}`}>
+      <label
+        className={`text-xs font-bold uppercase mb-2 block flex items-center gap-2 ${theme.text}`}
+      >
         <span>Interactive Refinement</span>
-        <span className="text-[10px] font-normal opacity-70">(Chat with this file)</span>
+        <span className="text-[10px] font-normal opacity-70">
+          (Chat with this file)
+        </span>
       </label>
-      
+
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"

@@ -29,11 +29,11 @@ export interface UserPreferences {
 }
 
 export interface HistoryItem {
-  id: string;             
-  timestamp: number;      
-  testCase: string;      
-  framework: string;      
-  resultData: ResultData; 
+  id: string;
+  timestamp: number;
+  testCase: string;
+  framework: string;
+  resultData: ResultData;
 }
 
 export type ThemeMode = "dark" | "light";
