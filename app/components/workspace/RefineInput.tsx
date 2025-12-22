@@ -26,7 +26,7 @@ export const RefineInput: React.FC<RefineInputProps> = ({ onRefine, isLoading, i
   return (
     <div className={`mt-4 p-3 rounded-lg border ${theme.bg}`}>
       <label className={`text-xs font-bold uppercase mb-2 block flex items-center gap-2 ${theme.text}`}>
-        <span>💬 Interactive Refinement</span>
+        <span>Interactive Refinement</span>
         <span className="text-[10px] font-normal opacity-70">(Chat with this file)</span>
       </label>
       
