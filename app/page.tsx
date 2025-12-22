@@ -16,86 +16,104 @@ import { HistorySidebar } from "./components/workspace/HistorySidebar";
 export default function Home() {
   const {
     // 1. INPUT STATES
-    input, setInput,
-    framework, setFramework,
-    provider, setProvider,
-    userApiKey, setUserApiKey,
-    
+    input,
+    setInput,
+    framework,
+    setFramework,
+    provider,
+    setProvider,
+    userApiKey,
+    setUserApiKey,
+
     // 2. APP DATA STATES
-    resultData, loading,
-    activeFile, setActiveFile,
-    activeTab, setActiveTab,
+    resultData,
+    loading,
+    activeFile,
+    setActiveFile,
+    activeTab,
+    setActiveTab,
     fixingId,
-    
+    explanationData,
+    handleExplainCode,
+    closeExplanation,
+
     // 3. UI STATES
-    isDarkMode, setIsDarkMode,
-    diffModal, setDiffModal,
-    toast, setToast,
-    showSettings, setShowSettings,
-    showSmartContextModal, setShowSmartContextModal,
-    
+    isDarkMode,
+    setIsDarkMode,
+    diffModal,
+    setDiffModal,
+    toast,
+    setToast,
+    showSettings,
+    setShowSettings,
+    showSmartContextModal,
+    setShowSmartContextModal,
+
     // 4. CONTEXT STATES (HTML & IMAGE)
-    htmlContext, setHtmlContext,
-    imageData, setImageData,
-    isCrawling, handleCrawlUrl,
-    isRefining, handleRefineCode,
+    htmlContext,
+    setHtmlContext,
+    imageData,
+    setImageData,
+    isCrawling,
+    handleCrawlUrl,
+    isRefining,
+    handleRefineCode,
 
     // 5. HISTORY STATES
-    history, 
-    showHistorySidebar, setShowHistorySidebar,
-    loadHistoryItem, deleteHistoryItem,
-    
+    history,
+    showHistorySidebar,
+    setShowHistorySidebar,
+    loadHistoryItem,
+    deleteHistoryItem,
+
     // 6. LOGIC & ACTIONS
     validLintItems,
-    preferences, setPreferences,
+    preferences,
+    setPreferences,
     handleGenerate,
     handleFixCode,
     applyFix,
     handleDownloadZip,
     updateActiveFileContent,
-    showToast
+    showToast,
   } = useQAapp();
 
   const theme = getTheme(isDarkMode);
 
   return (
-    <div className={`min-h-screen font-mono text-sm transition-colors duration-300 ${theme.bg} ${theme.text} p-6`}>
+    <div
+      className={`min-h-screen font-mono text-sm transition-colors duration-300 ${theme.bg} ${theme.text} p-6`}
+    >
       <div className="max-w-[1600px] mx-auto">
-        
         {/* HEADER */}
-        <Header 
-          isDarkMode={isDarkMode} 
-          toggleTheme={() => setIsDarkMode(!isDarkMode)} 
+        <Header
+          isDarkMode={isDarkMode}
+          toggleTheme={() => setIsDarkMode(!isDarkMode)}
           openSettings={() => setShowSettings(true)}
           openHistory={() => setShowHistorySidebar(true)}
         />
 
         {/* MAIN GRID LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
           {/* LEFT COLUMN: CONTROL PANEL */}
           <ControlPanel
             isDarkMode={isDarkMode}
             // API Settings
-            provider={provider} 
+            provider={provider}
             setProvider={setProvider}
-            userApiKey={userApiKey} 
+            userApiKey={userApiKey}
             setUserApiKey={setUserApiKey}
-            
             // Test Config
-            framework={framework} 
+            framework={framework}
             setFramework={setFramework}
-            
             // Input Area
-            input={input} 
+            input={input}
             setInput={setInput}
-            
             // Smart Context
-            htmlContext={htmlContext} 
+            htmlContext={htmlContext}
             setHtmlContext={setHtmlContext}
             imageData={imageData}
             openSmartContext={() => setShowSmartContextModal(true)}
-            
             // Actions
             handleGenerate={handleGenerate}
             loading={loading}
@@ -120,6 +138,9 @@ export default function Home() {
                 showToast={showToast}
                 handleRefineCode={handleRefineCode}
                 isRefining={isRefining}
+                explanationData={explanationData}
+                handleExplainCode={handleExplainCode}
+                closeExplanation={closeExplanation}
               />
             ) : loading ? (
               <LoadingState isDarkMode={isDarkMode} />
@@ -142,7 +163,7 @@ export default function Home() {
       />
 
       {/* 1. Settings Modal */}
-      <SettingsModal 
+      <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         preferences={preferences}
@@ -178,7 +199,11 @@ export default function Home() {
 
       {/* 4. Toast Notifications */}
       {toast && (
-        <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          msg={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

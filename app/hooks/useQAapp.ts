@@ -17,6 +17,12 @@ export const useQAapp = () => {
   
   const [fixingId, setFixingId] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const [explanationData, setExplanationData] = useState<{ show: boolean; content: string; isLoading: boolean }>({
+    show: false,
+    content: "",
+    isLoading: false
+  });
   
   // Modal States
   const [showSettings, setShowSettings] = useState(false);
@@ -297,6 +303,39 @@ export const useQAapp = () => {
     }
   };
 
+  const handleExplainCode = async (snippet: string) => {
+    if (!snippet.trim()) return;
+
+    setExplanationData({ show: true, content: "", isLoading: true });
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "explain",
+          currentCode: snippet, 
+          framework,
+          provider,
+          userApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to explain");
+
+      setExplanationData({ show: true, content: data.result, isLoading: false });
+
+    } catch (err: any) {
+      showToast(err.message || "Gagal menjelaskan kode", "error");
+      setExplanationData(prev => ({ ...prev, show: false, isLoading: false }));
+    }
+  };
+
+  const closeExplanation = () => {
+    setExplanationData({ show: false, content: "", isLoading: false });
+  };
+
   return {
     // 1. INPUT STATES
     input, setInput,
@@ -309,6 +348,7 @@ export const useQAapp = () => {
     activeFile, setActiveFile,
     activeTab, setActiveTab,
     fixingId,
+    explanationData, handleExplainCode, closeExplanation,
     
     // 3. UI STATES
     isDarkMode, setIsDarkMode,
