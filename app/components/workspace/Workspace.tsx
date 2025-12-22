@@ -6,6 +6,7 @@ import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism.css";
 import { getTheme } from '../../utils/theme';
 import { ResultData, GeneratedFile, LintItem } from '../../types';
+import { RefineInput } from "./RefineInput"; 
 
 interface WorkspaceProps {
   isDarkMode: boolean;
@@ -20,10 +21,19 @@ interface WorkspaceProps {
   fixingId: number | null;
   handleDownloadZip: () => void;
   showToast: (msg: string) => void;
+  
+  handleRefineCode: (instruction: string) => void; 
+  isRefining: boolean;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = (props) => {
-  const { isDarkMode, resultData, activeFile, setActiveFile, activeTab, setActiveTab, updateActiveFileContent, validLintItems, handleFixCode, fixingId, handleDownloadZip, showToast } = props;
+  const { 
+    isDarkMode, resultData, activeFile, setActiveFile, activeTab, setActiveTab, 
+    updateActiveFileContent, validLintItems, handleFixCode, fixingId, 
+    handleDownloadZip, showToast, 
+    handleRefineCode, isRefining 
+  } = props;
+
   const theme = getTheme(isDarkMode);
   
   const [copySuccess, setCopySuccess] = useState(false);
@@ -126,7 +136,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
         {activeTab === "code" && (
           <div className={`w-1/4 min-w-[200px] border-r flex flex-col ${theme.fileListBg} ${isDarkMode ? "border-gray-700" : "border-gray-300"}`}>
             <div className={`p-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? "text-gray-300 bg-gray-700" : "text-gray-600 bg-gray-200"}`}>Project Files</div>
-            <div className="overflow-y-auto flex-1 p-2 space-y-1">
+            <div className="overflow-y-auto flex-1 p-2 space-y-1 custom-scrollbar">
               {resultData.generated_files.map((file, idx) => (
                 <button key={idx} onClick={() => setActiveFile(file)} className={`w-full text-left px-3 py-2 rounded text-xs truncate transition ${activeFile?.path === file.path ? theme.fileActive : `${theme.text} ${theme.fileListHover}`}`}>
                   <div className="truncate w-full"><span className="mr-2 opacity-70">📄</span>{file.path.split("/").pop()}</div>
@@ -136,20 +146,30 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
           </div>
         )}
 
-        <div className={`${activeTab === "code" ? "w-3/4" : "w-full"} flex flex-col ${isDarkMode ? "bg-[#0d1117]" : "bg-white"}`}>
+        <div className={`flex-1 flex flex-col ${activeTab === "code" ? "w-3/4" : "w-full"} ${isDarkMode ? "bg-[#0d1117]" : "bg-white"}`}>
           {activeTab === "code" ? (
-            <div className={`flex-1 overflow-auto relative group custom-scrollbar ${isDarkMode ? "bg-[#1e1e1e]" : "bg-white"}`}>
-              <Editor
-                value={activeFile?.content || ""}
-                onValueChange={updateActiveFileContent}
-                highlight={(code) => highlight(code, languages.js, "javascript")}
-                padding={15}
-                className="font-mono text-xs min-h-full"
-                style={{ fontFamily: '"Fira Code", "Fira Mono", monospace', fontSize: 12, backgroundColor: "transparent", color: isDarkMode ? "#f8f8f2" : "#333" }}
-              />
+            <div className="flex flex-col h-full">
+                <div className={`flex-1 overflow-auto relative group custom-scrollbar ${isDarkMode ? "bg-[#1e1e1e]" : "bg-white"}`}>
+                  <Editor
+                    value={activeFile?.content || ""}
+                    onValueChange={updateActiveFileContent}
+                    highlight={(code) => highlight(code, languages.js, "javascript")}
+                    padding={15}
+                    className="font-mono text-xs min-h-full"
+                    style={{ fontFamily: '"Fira Code", "Fira Mono", monospace', fontSize: 12, backgroundColor: "transparent", color: isDarkMode ? "#f8f8f2" : "#333" }}
+                  />
+                </div>
+                {/* INTERACTIVE REFINEMENT INPUT (Here it is!) */}
+                <div className={`p-4 border-t ${isDarkMode ? "border-gray-700 bg-[#0d1117]" : "border-gray-200 bg-gray-50"}`}>
+                    <RefineInput 
+                        onRefine={handleRefineCode}
+                        isLoading={isRefining}
+                        isDarkMode={isDarkMode}
+                    />
+                </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto custom-scrollbar">
               {validLintItems.length > 0 ? (
                 <table className="w-full text-left border-collapse">
                   <thead className={`text-xs sticky top-0 ${theme.tableHeader}`}>
@@ -168,7 +188,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
                           <td className="p-2 text-right">
                             {lint.severity !== "Good" && (
                               <button onClick={() => handleFixCode(lint)} disabled={fixingId === lint.id} className={`px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 ml-auto ${fixingId === lint.id ? "bg-gray-500 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-500 text-white"}`}>
-                                {fixingId === lint.id ? "Fixing..." : "🪄 Auto Fix"}
+                                {fixingId === lint.id ? "Fixing..." : "Auto Fix"}
                               </button>
                             )}
                           </td>
@@ -179,7 +199,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
                 </table>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 animate-fade-in">
-                  <span className="text-4xl">✨</span><p className="font-bold">Code is Clean!</p><p className="text-xs opacity-70 max-w-xs text-center">No issues found. AI analysis passed successfully.</p>
+                  <p className="font-bold">Code is Clean!</p><p className="text-xs opacity-70 max-w-xs text-center">No issues found. AI analysis passed successfully.</p>
                 </div>
               )}
             </div>

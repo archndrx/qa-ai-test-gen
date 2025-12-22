@@ -26,6 +26,7 @@ export const useQAapp = () => {
   const [htmlContext, setHtmlContext] = useState("");
   const [imageData, setImageData] = useState<string | null>(null);
   const [isCrawling, setIsCrawling] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     selectorType: "data-testid",
@@ -184,13 +185,17 @@ export const useQAapp = () => {
     const updatedFiles = resultData.generated_files.map((f) =>
       f.path === diffModal.fileName ? { ...f, content: diffModal.newCode } : f
     );
-    const updatedLint = resultData.lint_report.filter((l) => l.id !== diffModal.lintId);
+    let updatedLint = resultData.lint_report;
+    if (diffModal.lintId !== -1) { 
+       updatedLint = resultData.lint_report.filter((l) => l.id !== diffModal.lintId);
+    }
 
     setResultData({ ...resultData, generated_files: updatedFiles, lint_report: updatedLint });
+    
     if (activeFile && activeFile.path === diffModal.fileName) {
       setActiveFile({ ...activeFile, content: diffModal.newCode });
     }
-    showToast("Fix applied successfully!");
+    showToast("Changes applied successfully!");
     setDiffModal(null);
   };
 
@@ -254,6 +259,44 @@ export const useQAapp = () => {
     }
   };
 
+  const handleRefineCode = async (instruction: string) => {
+    if (!activeFile || !instruction.trim()) return;
+
+    setIsRefining(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "refine",
+          currentCode: activeFile.content,
+          refineInstruction: instruction,
+          framework,
+          provider,
+          userApiKey,
+          preferences
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to refine code");
+
+      setDiffModal({
+        show: true,
+        oldCode: activeFile.content,  
+        newCode: data.result,         
+        fileName: activeFile.path,
+        lintId: -1, 
+      });
+
+
+    } catch (err: any) {
+      showToast(err.message || "Gagal refine code", "error");
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   return {
     // 1. INPUT STATES
     input, setInput,
@@ -278,6 +321,7 @@ export const useQAapp = () => {
     htmlContext, setHtmlContext,
     imageData, setImageData,
     isCrawling, handleCrawlUrl,
+    isRefining, handleRefineCode,
 
     // 5. HISTORY STATES (BARU)
     history, 

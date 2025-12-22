@@ -31,6 +31,7 @@ export async function POST(request) {
       framework, 
       provider, 
       currentCode, 
+      refineInstruction, 
       errorMessage, 
       fileName,
       userApiKey,
@@ -127,6 +128,19 @@ export async function POST(request) {
       Rules: Return ONLY the fixed code string. No markdown formatting.
     `;
 
+    const refineSystemPrompt = `
+      Role: Senior QA Code Refactorer.
+      Task: Modify the provided Automation Code based strictly on the User's Instruction.
+      
+      ${styleGuideInstruction}
+      
+      RULES:
+      1. Return ONLY the updated code string. No markdown, no explanations.
+      2. Maintain the existing structure/logic unless asked to change.
+      3. Do NOT hallucinate new files. Just edit the provided code.
+      4. If the instruction is impossible, return the original code.
+    `;
+
     // PROVIDER 1: OPENAI
     if (provider === 'openai') {
         const apiKey = userApiKey || process.env.OPENAI_API_KEY;
@@ -140,7 +154,14 @@ export async function POST(request) {
                 { role: "system", content: fixSystemPrompt },
                 { role: "user", content: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}` }
             ];
-        } else {
+        } 
+        else if (action === 'refine') {
+            messages = [
+                { role: "system", content: refineSystemPrompt },
+                { role: "user", content: `CURRENT CODE:\n${currentCode}\n\nUSER INSTRUCTION: ${refineInstruction}` }
+            ];
+        }
+        else {
             messages = [
                 { role: "system", content: generateSystemPrompt },
                 { role: "user", content: `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}\n${contextInstruction}` }
@@ -150,11 +171,13 @@ export async function POST(request) {
         const completion = await openai.chat.completions.create({
             messages: messages,
             model: "gpt-4o",
-            response_format: action === 'fix' ? undefined : { type: "json_object" }
+            response_format: action === 'generate' ? { type: "json_object" } : undefined 
         });
 
         let result = completion.choices[0].message.content;
-        if (action === 'fix') result = result.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        if (action === 'fix' || action === 'refine') {
+            result = result.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        }
 
         return NextResponse.json({ result });
     }
@@ -166,78 +189,80 @@ export async function POST(request) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         
+        let activeSystemPrompt = generateSystemPrompt;
+        if (action === 'fix') activeSystemPrompt = fixSystemPrompt;
+        if (action === 'refine') activeSystemPrompt = refineSystemPrompt;
+
         const geminiModel = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
-            generationConfig: { responseMimeType: action === 'fix' ? "text/plain" : "application/json" },
-            systemInstruction: action === 'fix' ? fixSystemPrompt : generateSystemPrompt
+            generationConfig: { responseMimeType: action === 'generate' ? "application/json" : "text/plain" },
+            systemInstruction: activeSystemPrompt
         });
 
-        // --- STEP 1: DRAFT GENERATION ---
         let promptParts = [];
 
-        // 1. Image Part
-        if (imageData && action !== 'fix') {
-            const base64Data = imageData.split(',')[1];
-            const mimeType = imageData.split(';')[0].split(':')[1];
-            promptParts.push({
-                inlineData: {
-                    data: base64Data,
-                    mimeType: mimeType
-                }
-            });
+        if (action === 'refine') {
+            promptParts.push({ text: `CURRENT CODE:\n${currentCode}\n\nUSER INSTRUCTION: ${refineInstruction}` });
+        } 
+        else if (action === 'fix') {
+            promptParts.push({ text: `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}\n\nIMPORTANT: Maintain style!` });
+        } 
+        else {
+            // 1. Image Part
+            if (imageData) {
+                const base64Data = imageData.split(',')[1];
+                const mimeType = imageData.split(';')[0].split(':')[1];
+                promptParts.push({
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType
+                    }
+                });
+            }
+            // 2. Text Part
+            promptParts.push({ text: `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}\n${contextInstruction}` });
         }
 
-        // 2. Text Part
-        let textPrompt = "";
-        if (action === 'fix') {
-            textPrompt = `FILE: ${fileName}\nERROR: ${errorMessage}\nCODE:\n${currentCode}\n\nIMPORTANT: Maintain style!`;
-        } else {
-            textPrompt = `Test Case: ${testCase}\n\nIMPORTANT REMINDER:\n${styleGuideInstruction}\n${contextInstruction}`;
-        }
-        promptParts.push({ text: textPrompt });
-
+        // --- Execute Gemini ---
         const draftResult = await geminiModel.generateContent(promptParts);
-        let draftCode = draftResult.response.text();
+        let resultText = draftResult.response.text();
 
-        // --- STEP 2: SELF-CORRECTION (Refinement) ---
-        if (action !== 'fix') {
+        if (action === 'generate') {
              const refinementModel = genAI.getGenerativeModel({ 
                 model: "gemini-2.5-flash",
                 generationConfig: { responseMimeType: "application/json" } 
              });
 
-             const refinementPrompt = `
-               You are a QA Code Reviewer. You have just generated the following JSON output for a Test Automation project:
+             const correctionPrompt = `
+               You are a QA Code Reviewer. You have just generated the following JSON output:
                
-               ${draftCode}
+               ${resultText}
                
                TASK: Review and Refine this JSON based on these strict criteria:
-               1. SELECTOR ACCURACY: If HTML context was provided in the previous step, did the code use the EXACT IDs/Classes?
+               1. SELECTOR ACCURACY: If HTML context was provided, did the code use the EXACT IDs/Classes?
                2. CODING STYLE: Did the code strictly follow:
                   - Quote Style: ${preferences?.quoteStyle || 'Any'}
                   - Assertion Style: ${preferences?.assertionStyle || 'Any'}
                3. SYNTAX: Are there any syntax errors?
                
-               OUTPUT: Return ONLY the corrected JSON. If the original was perfect, return it as is. Do NOT add markdown block.
+               OUTPUT: Return ONLY the corrected JSON. If original is perfect, return it.
              `;
              
              try {
-                const refinedResult = await refinementModel.generateContent(refinementPrompt);
-                draftCode = refinedResult.response.text();
+                const refinedResult = await refinementModel.generateContent(correctionPrompt);
+                resultText = refinedResult.response.text();
              } catch (refineError) {
-                console.warn("Refinement failed, using draft code.", refineError);
+                console.warn("Self-correction failed, using draft code.", refineError);
              }
         }
 
-        let finalResult = draftCode;
-
-        if (action === 'fix') {
-            finalResult = finalResult.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
+        if (action === 'fix' || action === 'refine') {
+            resultText = resultText.replace(/^```[a-z]*\n/i, "").replace(/```$/g, "").trim();
         } else {
-             finalResult = finalResult.replace(/^```json\n/i, "").replace(/^```\n/i, "").replace(/```$/g, "").trim();
+            resultText = resultText.replace(/^```json\n/i, "").replace(/^```\n/i, "").replace(/```$/g, "").trim();
         }
 
-        return NextResponse.json({ result: finalResult });
+        return NextResponse.json({ result: resultText });
     }
 
   } catch (error) {

@@ -38,6 +38,7 @@ export default function Home() {
     htmlContext, setHtmlContext,
     imageData, setImageData,
     isCrawling, handleCrawlUrl,
+    isRefining, handleRefineCode,
 
     // 5. HISTORY STATES
     history, 
@@ -117,6 +118,8 @@ export default function Home() {
                 fixingId={fixingId}
                 handleDownloadZip={handleDownloadZip}
                 showToast={showToast}
+                handleRefineCode={handleRefineCode}
+                isRefining={isRefining}
               />
             ) : loading ? (
               <LoadingState isDarkMode={isDarkMode} />

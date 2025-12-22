@@ -9,16 +9,18 @@ interface DiffModalProps {
   onClose: () => void;
   onApply: () => void;
   isDarkMode: boolean;
+  lintId?: number;
 }
 
-export const DiffModal: React.FC<DiffModalProps> = ({ isOpen, oldCode, newCode, fileName, onClose, onApply, isDarkMode }) => {
+export const DiffModal: React.FC<DiffModalProps> = ({ isOpen, oldCode, newCode, fileName, onClose, onApply, isDarkMode, lintId }) => {
   if (!isOpen) return null;
+  const title = lintId === -1 ? "Review Refinement" : "Review Auto-Fix";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
       <div className={`w-full max-w-6xl h-[85vh] flex flex-col rounded-xl shadow-2xl border overflow-hidden ${isDarkMode ? "bg-[#0d1117] border-gray-700" : "bg-white border-gray-200"}`}>
         <div className={`p-4 border-b flex justify-between items-center ${isDarkMode ? "border-gray-700 bg-[#161b22]" : "border-gray-200 bg-gray-50"}`}>
-          <div><h3 className={`font-bold text-lg flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-800"}`}>Review AI Fix</h3><p className={`text-xs font-mono opacity-60 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>{fileName}</p></div>
+          <div><h3 className={`font-bold text-lg flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-800"}`}>{title}</h3><p className={`text-xs font-mono opacity-60 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>{fileName}</p></div>
           <button onClick={onClose} className="text-2xl opacity-50 hover:opacity-100 hover:text-red-500 transition">&times;</button>
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar relative bg-[#0d1117]">
