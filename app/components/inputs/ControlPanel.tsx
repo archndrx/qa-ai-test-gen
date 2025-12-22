@@ -44,7 +44,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </select>
         </div>
         <div>
-          <span className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}>Custom API Key <span className="font-normal normal-case">(Optional)</span></span>
+          <span className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}>Custom API Key</span>
           <input type="password" value={userApiKey} onChange={(e) => setUserApiKey(e.target.value)} placeholder={provider === "openai" ? "sk-proj-..." : "AIzaSy..."} className={`w-full p-2 rounded border outline-none ${theme.input}`} />
         </div>
       </div>
