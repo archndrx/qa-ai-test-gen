@@ -225,7 +225,6 @@ export const SmartContextModal: React.FC<SmartContextModalProps> = ({
                 disabled={isCrawling || !urlInput}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {isCrawling ? <span className="animate-spin">⌛</span> : "🕷️"}
                 {isCrawling ? "Crawling..." : "Fetch HTML"}
               </button>
             </div>
@@ -259,21 +258,23 @@ export const SmartContextModal: React.FC<SmartContextModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div
-          className={`p-4 border-t flex justify-between items-center ${theme.header}`}
-        >
-          <button
-            onClick={() => {
-              setHtmlContext("");
-              setImageData(null);
-            }}
-            className="text-xs text-red-500 hover:underline"
-          >
-            Clear All Context
-          </button>
+        <div className={`p-4 border-t flex items-center ${theme.header}`}>
+          {(imageData || htmlContext) && (
+            <button
+              onClick={() => {
+                setHtmlContext("");
+                setImageData(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="text-xs text-red-500 hover:underline animate-in fade-in slide-in-from-left-2 duration-200"
+            >
+              Clear All Context
+            </button>
+          )}
+
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg transition"
+            className="ml-auto px-6 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg transition"
           >
             Save & Close
           </button>
