@@ -5,6 +5,7 @@ interface HeaderProps {
   toggleTheme: () => void;
   openSettings: () => void;
   openHistory: () => void;
+  onOpenFixtureModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -12,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({
   toggleTheme,
   openSettings,
   openHistory,
+  onOpenFixtureModal,
 }) => {
   // Common button classes
   const btnClass = `p-2.5 rounded-lg border transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md ${
@@ -29,6 +31,17 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex gap-3">
+        {/*SMART FIXTURE GENERATOR BUTTON*/}
+        <button
+          onClick={onOpenFixtureModal}
+          className={btnClass}
+          title="Smart Fixture Generator (Mock Data)"
+        >
+          <span className="text-lg leading-none filter drop-shadow-sm hover:rotate-12 transition-transform">
+            🎲
+          </span>
+        </button>
+
         {/* HISTORY BUTTON */}
         <button
           onClick={openHistory}
@@ -82,7 +95,6 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Toggle Theme"
         >
           {isDarkMode ? (
-            // Sun Icon
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -99,7 +111,6 @@ export const Header: React.FC<HeaderProps> = ({
               <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
             </svg>
           ) : (
-            // Moon Icon
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"

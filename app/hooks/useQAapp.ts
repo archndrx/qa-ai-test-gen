@@ -34,6 +34,10 @@ export const useQAapp = () => {
     isLoading: false,
   });
 
+  const [showFixtureModal, setShowFixtureModal] = useState(false);
+  const [fixtureResult, setFixtureResult] = useState("");
+  const [isGeneratingFixture, setIsGeneratingFixture] = useState(false);
+
   // Modal States
   const [showSettings, setShowSettings] = useState(false);
   const [showSmartContextModal, setShowSmartContextModal] = useState(false);
@@ -116,7 +120,7 @@ export const useQAapp = () => {
 
     const processedFiles = item.resultData.generated_files.map((f) => ({
       ...f,
-      originalContent: f.originalContent || f.content, 
+      originalContent: f.originalContent || f.content,
     }));
 
     const processedResult = {
@@ -130,7 +134,7 @@ export const useQAapp = () => {
       setActiveFile(processedFiles[0]);
     }
     setShowHistorySidebar(false);
-    showToast("Project loaded from history! 📂");
+    showToast("Project loaded from history!");
   };
 
   const deleteHistoryItem = (e: React.MouseEvent, id: string) => {
@@ -362,7 +366,7 @@ export const useQAapp = () => {
         lintId: -1,
       });
     } catch (err: any) {
-      showToast(err.message || "Gagal refine code", "error");
+      showToast(err.message || "Failed to refine code", "error");
     } finally {
       setIsRefining(false);
     }
@@ -395,7 +399,7 @@ export const useQAapp = () => {
         isLoading: false,
       });
     } catch (err: any) {
-      showToast(err.message || "Gagal menjelaskan kode", "error");
+      showToast(err.message || "Failed to explain code", "error");
       setExplanationData((prev) => ({
         ...prev,
         show: false,
@@ -406,6 +410,70 @@ export const useQAapp = () => {
 
   const closeExplanation = () => {
     setExplanationData({ show: false, content: "", isLoading: false });
+  };
+
+  const handleGenerateFixture = async (request: string, format: string) => {
+    if (!request.trim()) return;
+
+    setIsGeneratingFixture(true);
+    setFixtureResult(""); // Reset output
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_fixture",
+          fixtureRequest: request,
+          fixtureFormat: format,
+          provider,
+          userApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal generate data");
+
+      setFixtureResult(data.result);
+    } catch (err: any) {
+      showToast(err.message, "error");
+    } finally {
+      setIsGeneratingFixture(false);
+    }
+  };
+
+  const handleSaveFixtureToWorkspace = (content: string, format: string) => {
+    const ext = format === 'sql' ? 'sql' : format === 'csv' ? 'csv' : 'json';
+    const folder = framework === 'cypress' ? 'cypress/fixtures' : 'tests/fixtures';
+    const defaultName = `mock_data_${Date.now()}.${ext}`;
+    
+    const fileName = window.prompt("Enter filename:", defaultName);
+    if (!fileName) return; // Cancelled
+
+    const fullPath = `${folder}/${fileName}`;
+    const newFile: GeneratedFile = {
+      path: fullPath,
+      content: content,
+      originalContent: content
+    };
+
+    setResultData((prev) => {
+      const base = prev || {
+        risk_analysis: { score: 0, priority: "Low", reasoning: "Manual Fixture Generation" },
+        lint_report: [],
+        generated_files: []
+      };
+
+      return {
+        ...base,
+        generated_files: [...base.generated_files, newFile]
+      };
+    });
+
+    setActiveFile(newFile);
+    setActiveTab("code");
+    setShowFixtureModal(false); 
+    showToast(`File saved as ${fileName}!`);
   };
 
   return {
@@ -470,5 +538,11 @@ export const useQAapp = () => {
     handleDownloadZip,
     updateActiveFileContent,
     showToast,
+    showFixtureModal,
+    setShowFixtureModal,
+    fixtureResult,
+    isGeneratingFixture,
+    handleGenerateFixture,
+    handleSaveFixtureToWorkspace,
   };
 };

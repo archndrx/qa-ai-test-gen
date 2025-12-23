@@ -27,6 +27,8 @@ export async function POST(request) {
     const body = await request.json();
     const {
       action,
+      fixtureRequest,
+      fixtureFormat,
       testCase,
       framework,
       provider,
@@ -172,6 +174,19 @@ export async function POST(request) {
       5. Tone: Encouraging & Educational.
     `;
 
+    const fixtureSystemPrompt = `
+      Role: Expert Data Generator for QA Testing.
+      Task: Generate realistic mock data based on user requirements.
+      
+      CRITICAL OUTPUT RULES:
+      1. Output ONLY the raw data. DO NOT wrap in markdown code blocks (no \`\`\`json).
+      2. If format is JSON, return a valid JSON array/object.
+      3. If format is SQL, return valid INSERT statements.
+      4. If format is CSV, return valid comma-separated values with headers.
+      5. Ensure data consistency (e.g., email matches name).
+      6. Use realistic data (names, addresses, dates), not "test1", "test2".
+    `;
+
     // PROVIDER 1: OPENAI
     if (provider === "openai") {
       const apiKey = userApiKey || process.env.OPENAI_API_KEY;
@@ -204,6 +219,14 @@ export async function POST(request) {
         messages = [
           { role: "system", content: explainSystemPrompt },
           { role: "user", content: `EXPLAIN THIS CODE:\n${currentCode}` },
+        ];
+      } else if (action === "generate_fixture") {
+        messages = [
+          { role: "system", content: fixtureSystemPrompt },
+          {
+            role: "user",
+            content: `GENERATE ${fixtureFormat.toUpperCase()} DATA:\nRequest: ${fixtureRequest}`,
+          },
         ];
       } else {
         messages = [
@@ -248,12 +271,17 @@ export async function POST(request) {
       if (action === "fix") activeSystemPrompt = fixSystemPrompt;
       if (action === "refine") activeSystemPrompt = refineSystemPrompt;
       if (action === "explain") activeSystemPrompt = explainSystemPrompt;
+      if (action === "generate_fixture")
+        activeSystemPrompt = fixtureSystemPrompt;
 
       const geminiModel = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
         generationConfig: {
           responseMimeType:
-            action === "generate" ? "application/json" : "text/plain",
+            action === "generate" ||
+            (action === "generate_fixture" && fixtureFormat === "json")
+              ? "application/json"
+              : "text/plain",
         },
         systemInstruction: activeSystemPrompt,
       });
@@ -270,6 +298,10 @@ export async function POST(request) {
         });
       } else if (action === "explain") {
         promptParts.push({ text: `EXPLAIN THIS CODE:\n${currentCode}` });
+      } else if (action === "generate_fixture") {
+        promptParts.push({
+          text: `GENERATE ${fixtureFormat.toUpperCase()} DATA:\nRequest: ${fixtureRequest}`,
+        });
       } else {
         // 1. Image Part
         if (imageData) {

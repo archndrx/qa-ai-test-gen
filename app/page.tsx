@@ -12,6 +12,7 @@ import { Toast } from "./components/feedback/Toast";
 import { SettingsModal } from "./components/modals/SettingsModal";
 import { SmartContextModal } from "./components/modals/SmartContextModal";
 import { HistorySidebar } from "./components/workspace/HistorySidebar";
+import { FixtureModal } from "./components/modals/FixtureModal";
 
 export default function Home() {
   const {
@@ -76,6 +77,12 @@ export default function Home() {
     handleDownloadZip,
     updateActiveFileContent,
     showToast,
+    showFixtureModal,
+    setShowFixtureModal,
+    fixtureResult,
+    isGeneratingFixture,
+    handleGenerateFixture,
+    handleSaveFixtureToWorkspace,
   } = useQAapp();
 
   const theme = getTheme(isDarkMode);
@@ -91,6 +98,7 @@ export default function Home() {
           toggleTheme={() => setIsDarkMode(!isDarkMode)}
           openSettings={() => setShowSettings(true)}
           openHistory={() => setShowHistorySidebar(true)}
+          onOpenFixtureModal={() => setShowFixtureModal(true)}
         />
 
         {/* MAIN GRID LAYOUT */}
@@ -162,7 +170,16 @@ export default function Home() {
         isDarkMode={isDarkMode}
       />
 
-      {/* 1. Settings Modal */}
+      <FixtureModal
+        isOpen={showFixtureModal}
+        onClose={() => setShowFixtureModal(false)}
+        isDarkMode={isDarkMode}
+        onGenerate={handleGenerateFixture}
+        isLoading={isGeneratingFixture}
+        result={fixtureResult}
+        onSaveToWorkspace={handleSaveFixtureToWorkspace}
+      />
+
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -171,7 +188,6 @@ export default function Home() {
         isDarkMode={isDarkMode}
       />
 
-      {/* 2. Smart Context Modal (HTML & Image) */}
       <SmartContextModal
         isOpen={showSmartContextModal}
         onClose={() => setShowSmartContextModal(false)}
@@ -184,7 +200,6 @@ export default function Home() {
         onCrawl={handleCrawlUrl}
       />
 
-      {/* 3. Diff Modal (Auto Fix Review) */}
       {diffModal && diffModal.show && (
         <DiffModal
           isOpen={diffModal.show}
@@ -197,7 +212,6 @@ export default function Home() {
         />
       )}
 
-      {/* 4. Toast Notifications */}
       {toast && (
         <Toast
           msg={toast.msg}
