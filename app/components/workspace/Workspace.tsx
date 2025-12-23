@@ -29,6 +29,7 @@ interface WorkspaceProps {
   explanationData: { show: boolean; content: string; isLoading: boolean };
   handleExplainCode: (snippet: string) => void;
   closeExplanation: () => void;
+  onOpenDebug: () => void;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = (props) => {
@@ -50,6 +51,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
     explanationData,
     handleExplainCode,
     closeExplanation,
+    onOpenDebug,
   } = props;
 
   const theme = getTheme(isDarkMode);
@@ -228,6 +230,16 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
 
           {activeTab === "code" && (
             <div className="flex gap-2 py-1 ml-2 items-center">
+              <button
+                onClick={onOpenDebug}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all mr-1"
+                title="Analyze Error Logs"
+              >
+                <span className={isDarkMode ? "text-red-400" : "text-red-500"}>
+                  🐛
+                </span>
+                <span>Debug</span>
+              </button>
               {isModified && (
                 <button
                   onClick={handleResetFile}
@@ -240,16 +252,23 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
 
               <button
                 onClick={handleCopyCode}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded transition-all duration-200 border border-transparent ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-all duration-200 border border-transparent ${
                   copySuccess
-                    ? "text-green-500 bg-green-500/10"
-                    : "hover:text-green-500 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    ? "text-green-600 bg-green-50 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900" // STATE SUKSES (HIJAU)
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700" // STATE NORMAL (NETRAL)
                 }`}
+                title="Copy code"
               >
                 {copySuccess ? (
-                  <span className="text-sm">✅</span>
+                  <>
+                    <span className="text-sm">✅</span>
+                    <span className="text-xs font-bold">Copied</span>
+                  </>
                 ) : (
-                  <span className="text-sm">📋</span>
+                  <>
+                    <span className="text-sm">📋</span>
+                    <span className="text-xs font-bold">Copy</span>
+                  </>
                 )}
               </button>
 

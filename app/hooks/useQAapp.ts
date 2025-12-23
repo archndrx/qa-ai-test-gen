@@ -41,6 +41,7 @@ export const useQAapp = () => {
   // Modal States
   const [showSettings, setShowSettings] = useState(false);
   const [showSmartContextModal, setShowSmartContextModal] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false);
 
   // Context States
   const [htmlContext, setHtmlContext] = useState("");
@@ -604,6 +605,43 @@ export const useQAapp = () => {
     showToast(`File saved as ${fileName}!`);
   };
 
+  const handleDebugError = async (errorLog: string) => {
+    if (!activeFile || !errorLog.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "refine",
+          currentCode: activeFile.content,
+          refineInstruction: `FIX THIS ERROR: ${errorLog}. \n\nAnalyze the code and the error, then provide the corrected code.`,
+          framework,
+          provider,
+          userApiKey,
+          preferences,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDiffModal({
+        show: true,
+        oldCode: activeFile.content,
+        newCode: data.result,
+        fileName: activeFile.path,
+        lintId: -1,
+      });
+      setShowDebugModal(false);
+    } catch (err: any) {
+      showToast(err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     // 1. INPUT STATES
     input,
@@ -638,6 +676,9 @@ export const useQAapp = () => {
     setShowSettings,
     showSmartContextModal,
     setShowSmartContextModal,
+    showDebugModal,
+    setShowDebugModal,
+    handleDebugError,
 
     // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext,

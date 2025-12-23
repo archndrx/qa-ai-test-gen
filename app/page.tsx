@@ -13,6 +13,7 @@ import { SettingsModal } from "./components/modals/SettingsModal";
 import { SmartContextModal } from "./components/modals/SmartContextModal";
 import { HistorySidebar } from "./components/workspace/HistorySidebar";
 import { FixtureModal } from "./components/modals/FixtureModal";
+import { DebugModal } from "./components/modals/DebugModal";
 
 export default function Home() {
   const {
@@ -49,6 +50,9 @@ export default function Home() {
     setShowSettings,
     showSmartContextModal,
     setShowSmartContextModal,
+    showDebugModal,
+    setShowDebugModal,
+    handleDebugError,
 
     // 4. CONTEXT STATES (HTML & IMAGE)
     htmlContext,
@@ -149,6 +153,7 @@ export default function Home() {
                 explanationData={explanationData}
                 handleExplainCode={handleExplainCode}
                 closeExplanation={closeExplanation}
+                onOpenDebug={() => setShowDebugModal(true)}
               />
             ) : loading ? (
               <LoadingState isDarkMode={isDarkMode} />
@@ -179,6 +184,14 @@ export default function Home() {
         result={fixtureResult}
         onSaveToWorkspace={handleSaveFixtureToWorkspace}
       />
+
+      <DebugModal
+          isOpen={showDebugModal}
+          onClose={() => setShowDebugModal(false)}
+          isDarkMode={isDarkMode}
+          onAnalyze={handleDebugError}
+          isLoading={loading}
+       />
 
       <SettingsModal
         isOpen={showSettings}
