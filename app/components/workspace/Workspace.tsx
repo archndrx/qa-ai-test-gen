@@ -140,7 +140,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
     if (!activeFile?.content) return;
     await navigator.clipboard.writeText(activeFile.content);
     setCopySuccess(true);
-    showToast("Kode berhasil disalin! 📋");
+    showToast("Code was copied successfully!");
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
@@ -153,7 +153,7 @@ export const Workspace: React.FC<WorkspaceProps> = (props) => {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    showToast("File downloaded! 📥");
+    showToast("File downloaded!");
     setShowDownloadMenu(false);
   };
 

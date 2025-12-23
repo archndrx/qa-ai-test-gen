@@ -69,7 +69,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           <span
             className={`text-[10px] uppercase font-bold mb-1 block ${theme.subtext}`}
           >
-            Custom API Key
+            API Key
           </span>
           <input
             type="password"
