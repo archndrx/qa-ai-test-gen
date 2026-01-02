@@ -27,5 +27,8 @@ Note :
 If you don't want to put your API KEY in the local env, you can directly input it in the Custom API Key column on the frontend according to the provider you choose.
 
 <img width="1903" height="1033" alt="image" src="https://github.com/user-attachments/assets/00fb5c48-c09a-45bd-b03d-7526263e7f70" />
+<img width="1904" height="1031" alt="image" src="https://github.com/user-attachments/assets/c8b1c0f9-5cf7-418d-9f4b-56bd500c0fc3" />
+<img width="1904" height="1035" alt="image" src="https://github.com/user-attachments/assets/eed433fc-86fe-4ee6-9d1b-ad3d087d81ee" />
+
 
 
