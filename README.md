@@ -25,5 +25,7 @@ Or you can see the actual result from this repo here : [https://qa-testgen.netli
 
 Note :
 If you don't want to put your API KEY in the local env, you can directly input it in the Custom API Key column on the frontend according to the provider you choose.
-<img width="1904" height="1031" alt="image" src="https://github.com/user-attachments/assets/e5fdc29a-ca61-4244-9c68-703b008afd89" />
+
+<img width="1903" height="1033" alt="image" src="https://github.com/user-attachments/assets/00fb5c48-c09a-45bd-b03d-7526263e7f70" />
+
 
